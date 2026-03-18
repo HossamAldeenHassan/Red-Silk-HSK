@@ -4080,7 +4080,7 @@ body.dark .panda-msg {
 
   /* القائمة عند النقر على الهامبرغر */
   .topnav.active {
-    display: block !important;
+    display: flex !important;
     position: fixed !important;
     /* استخدم fixed لتغطية الشاشة */
     top: 60px !important;
@@ -4095,9 +4095,10 @@ body.dark .panda-msg {
     z-index: 1000 !important;
 
     /* استخدام ارتفاع نسبة من الشاشة */
-    max-height: 40vh !important;
+    max-height: calc(100vh-60px) !important;
     /* 40% من ارتفاع الشاشة */
-    overflow-y: scroll !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
     /* التمرير العمودي إلزامي */
     overflow-x: hidden !important;
 
@@ -4169,8 +4170,4 @@ body.dark .panda-msg {
   .menu-toggle {
     display: none !important;
   }
-}
-
-body.menu-open {
-  overflow: hidden;
 }
