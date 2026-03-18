@@ -1,0 +1,54 @@
+function buildNav() {
+      const navEl = document.getElementById('main_nav');
+      if (!navEl) return;
+      let html = '';
+      const mainTabs = [
+        ['intro', '🏠', 'مقدمة'],
+        ['pinyin', '🗣️', 'أساسيات Pinyin'],
+        ['grammar', '📐', 'القواعد'],
+        ['vocab', '📖', '500 كلمة'],
+        ['translator', '🔊', 'المترجم الذكي'],
+        ['bigexam', '🏆', 'الامتحان الشامل']
+      ];
+      mainTabs.forEach(([id, icon, label]) => {
+        html += `<button class="nav-tab ${currentTab === id ? 'active' : ''}" data-tab="${id}" onclick="showTab('${id}')">${icon} ${label}</button>`;
+      });
+      html += `<div class="nav-divider"></div>`;
+      html += `<div style="font-size:.65rem;color:rgba(255,255,255,.4);padding:.2rem .8rem;margin-bottom:.2rem;">المواضيع (15)</div>`;
+      TOPICS.forEach(t => {
+        const isActive = currentTab === 't' + t.n;
+        html += `<button class="nav-tab topic-tab ${isActive ? 'active' : ''}" data-tab="t${t.n}" onclick="showTab('t${t.n}')">
+          <span class="nt-num">${t.n}</span>${t.t.split(' (')[0].split(' —')[0]}
+        </button>`;
+      });
+      navEl.innerHTML = html;
+    }
+
+    // =========================================================================
+    // بناء إطارات المحتوى
+    // =========================================================================
+    
+
+function buildContentFrames() {
+      const mainArea = document.getElementById('main_area');
+      let html = '';
+
+      html += `<div id="sec-intro" class="sec active" style="padding:.5rem">${renderIntro()}</div>`;
+      html += `<div id="sec-pinyin" class="sec" style="padding:.5rem">${renderPinyinBasics()}</div>`;
+      html += `<div id="sec-tones" class="sec" style="padding:.5rem">${renderTones()}</div>`;
+      html += `<div id="sec-grammar" class="sec" style="padding:.5rem">${renderGrammar()}</div>`;
+      html += `<div id="sec-vocab" class="sec" style="padding:.5rem">${renderVocab()}</div>`;
+      html += `<div id="sec-translator" class="sec" style="padding:.5rem">${renderSmartTranslator()}</div>`;
+      html += `<div id="sec-bigexam" class="sec" style="padding:.5rem">${renderBigExam()}</div>`;
+
+      for (let i = 1; i <= 15; i++) {
+        html += `<div id="sec-t${i}" class="sec">${renderTopic(i)}</div>`;
+      }
+
+      mainArea.innerHTML = html;
+    }
+
+    // =========================================================================
+    // عرض التبويب المحدد
+    // =========================================================================
+    

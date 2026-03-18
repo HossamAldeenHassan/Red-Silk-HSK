@@ -1,0 +1,91 @@
+function renderTopic(n) {
+      const t = TOPICS[n - 1];
+      const words = W.filter(w => w[4] === n);
+      const sents = SENTS[n] || [];
+      const quizQs = generateDynamicQuiz(n);
+      const qid = `topic_q_${n}`;
+
+      window[qid + '_questions'] = [...quizQs].sort(() => Math.random() - 0.5);
+      window[qid + '_orig'] = [...quizQs];
+      window[qid + '_state'] = { idx: 0, score: 0, answered: false, total: quizQs.length, id: qid };
+
+      let html = `<div class="topic-section" id="topic_${n}">
+        <div class="topic-header" style="background:var(--r)">
+          <div class="topic-header-inner">
+            <span class="topic-num">${n}</span>
+            <div>
+              <div class="topic-zh-title">${t.h}</div>
+              <div class="topic-ar-title">${t.t}</div>
+              <div class="topic-en-title">${t.s}</div>
+            </div>
+          </div>
+          <button class="py-toggle white-py" onclick="togglePinyin()">${showPinyin ? 'إخفاء Pinyin 👁️' : 'إظهار Pinyin 👁️'}</button>
+        </div>
+        
+        <div class="section-tabs">
+          <button class="stab active" onclick="showSTab(${n},'words')">📚 المفردات (${words.length})</button>
+          <button class="stab" onclick="showSTab(${n},'sents')">📖 جمل</button>
+          <button class="stab" onclick="showSTab(${n},'dialog')">💬 حوار</button>
+          <button class="stab" onclick="showSTab(${n},'quiz')">🧪 اختبار</button>
+        </div>
+        
+        <div class="stab-content" id="stab_${n}_words">
+          <div class="fc-container">
+            <div class="fc-controls">
+              <button onclick="fcPrev()" class="fc-nav-btn">← السابق</button>
+              <span id="fc_counter_${n}" class="fc-count">1 / ${words.length}</span>
+              <button onclick="fcNext()" class="fc-nav-btn">التالي →</button>
+            </div>
+            <div id="fc_card_${n}" class="fc-card-wrap"></div>
+            <div class="fc-actions">
+              <button id="fc_learned_btn_${n}" class="btn-learned" onclick="toggleLearned()">🔖 احفظها</button>
+              <button class="btn-shuffle" onclick="initFlashcards(${n})">🔀 ابدأ من أول</button>
+            </div>
+            <div class="word-grid">
+              ${words.map(w => `<div class="word-card" onclick="speakChinese('${w[0].replace(/'/g,"\\'")}'); jumpToFC(${n}, '${w[0].replace(/'/g,"\\'")}')">
+                <div class="wc-zh">${w[0]}</div>
+                <div class="wc-py py" style="display:${showPinyin ? 'block' : 'none'}">${w[1]}</div>
+                <div class="wc-ar">${w[2]}</div>
+                <div class="wc-type">${w[3] || ''}</div>
+              </div>`).join('')}
+            </div>
+          </div>
+        </div>
+        
+        <div class="stab-content hidden" id="stab_${n}_sents">
+          ${sents.map(s => `<div class="sent-card">
+            <div class="sent-zh" onclick="speakChinese('${s[0].replace(/'/g,"\\'")}');" style="cursor:pointer;" title="انقر للسماع">${zhSpan(s[0], s[1])} <span style="font-size:.75rem;opacity:.45">🔊</span></div>
+            <div class="sent-ar">${s[2]}</div>
+            ${s[3] ? `<div class="sent-note">💡 ${s[3]}</div>` : ''}
+          </div>`).join('')}
+        </div>
+        
+        <div class="stab-content hidden" id="stab_${n}_dialog">
+          ${renderDialogue(n)}
+        </div>
+        
+        <div class="stab-content hidden" id="stab_${n}_quiz">
+          <div id="${qid}" class="quiz-wrap">`;
+
+      if (quizQs.length) {
+        const q = window[qid + '_questions'][0];
+        html += `<div class="quiz-header">
+          <span class="quiz-prog">1 / ${quizQs.length}</span>
+          <button class="py-toggle" onclick="togglePinyin()">${showPinyin ? 'إخفاء Pinyin 👁️' : 'إظهار Pinyin 👁️'}</button>
+          <div class="prog-bar"><div class="prog-fill" style="width:0%"></div></div>
+        </div>
+        <div class="quiz-q"><p class="q-text">${q.q}</p>
+        ${q.zh ? `<div class="q-zh">${zhSpan(q.zh, q.py || '')}</div>` : ''}
+        </div>
+        <div class="opts" id="${qid}_opts">`;
+        q.opts.forEach((o, i) => html += `<button class="opt-btn" onclick="answerQuiz('${qid}',${i})">${o}</button>`);
+        html += `</div><div id="${qid}_exp" class="quiz-exp hidden"></div>
+        <div id="${qid}_nav" class="quiz-nav hidden"><button class="btn-next" onclick="nextQuestion('${qid}')">التالي ←</button></div>`;
+      } else {
+        html += `<p style="color:#999;text-align:center;padding:2rem">الاختبار قيد الإعداد...</p>`;
+      }
+      html += `</div></div></div></div>`;
+      return html;
+    }
+
+    

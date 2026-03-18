@@ -1,0 +1,8 @@
+
+--- New-HSK-1-Words.pdf Page 2 ---
+--- TABLES IN PAGE 2 ---
+['', '1', '', '', '爱', '', '', 'ài', '', '', 'love', '']
+
+--- New-HSK-2-Word-List.pdf Page 2 ---
+--- TABLES IN PAGE 2 ---
+['', '1', '', '', '啊', '', '', 'a', '', '', 'auxiliary word', '']
