@@ -1850,16 +1850,75 @@ window.translateText = translateText;
 
 function toggleMenu() {
   const nav = document.getElementById("top_nav");
-  if (nav) {
-    nav.classList.toggle("active");
+  if (!nav) return;
+
+  nav.classList.toggle("active");
+
+  // إذا كانت القائمة مفتوحة على شاشة صغيرة، طبق الأنماط مباشرة
+  if (window.innerWidth <= 768 && nav.classList.contains("active")) {
+    // أنماط إجبارية للقائمة
+    nav.style.display = "flex";
+    nav.style.flexDirection = "column";
+    nav.style.position = "absolute";
+    nav.style.top = "60px";
+    nav.style.left = "0";
+    nav.style.right = "0";
+    nav.style.background = "#fff";
+    nav.style.maxHeight = "300px";
+    nav.style.overflowY = "auto";
+    nav.style.overflowX = "hidden";
+    nav.style.boxShadow = "0 4px 10px rgba(0,0,0,0.1)";
+    nav.style.zIndex = "1000";
+    nav.style.borderRadius = "0 0 12px 12px";
+
+    // أنماط لعناصر القائمة
+    const items = nav.querySelectorAll(".nav-item");
+    items.forEach((item) => {
+      item.style.width = "100%";
+      item.style.textAlign = "right";
+      item.style.padding = "14px 20px";
+      item.style.margin = "0";
+      item.style.borderBottom = "1px solid #eee";
+      item.style.flexShrink = "0";
+    });
+
+    // إزالة الحد من آخر عنصر
+    if (items.length > 0) {
+      items[items.length - 1].style.borderBottom = "none";
+    }
+  } else if (window.innerWidth > 768) {
+    // على الشاشات الكبيرة، أعد تعيين الأنماط
+    nav.style = "";
   }
 }
+// دالة لإعادة تعيين أنماط القائمة عند تغيير حجم الشاشة
+function resetNavOnResize() {
+  const nav = document.getElementById("top_nav");
+  if (!nav) return;
+
+  if (window.innerWidth > 768) {
+    // شاشة كبيرة: أزل الأنماط المخصصة واترك CSS يديرها
+    nav.style = "";
+    nav.classList.remove("active");
+  } else {
+    // شاشة صغيرة: تأكد من أن القائمة مخفية في البداية
+    if (!nav.classList.contains("active")) {
+      nav.style.display = "none";
+    }
+  }
+}
+
+// استدعاء الدالة عند تحميل الصفحة وعند تغيير الحجم
+window.addEventListener("resize", resetNavOnResize);
+document.addEventListener("DOMContentLoaded", resetNavOnResize);
 
 // إغلاق القائمة عند النقر على أي رابط
 document.querySelectorAll(".nav-item").forEach((item) => {
   item.addEventListener("click", function () {
     if (window.innerWidth <= 768) {
-      document.getElementById("top_nav").classList.remove("active");
+      const nav = document.getElementById("top_nav");
+      nav.classList.remove("active");
+      nav.style.display = "none";
     }
   });
 });
@@ -1871,6 +1930,8 @@ document.addEventListener("click", function (e) {
   if (window.innerWidth <= 768 && nav && nav.classList.contains("active")) {
     if (!nav.contains(e.target) && !toggle.contains(e.target)) {
       nav.classList.remove("active");
+      // إخفاء القائمة بعد الإغلاق
+      nav.style.display = "none";
     }
   }
 });
@@ -3165,6 +3226,14 @@ function showTab(tabId) {
     if (!Number.isNaN(num)) currentLesson = num;
     initFlashcards(num);
   }
+  // إغلاق القائمة تلقائياً بعد تغيير التبويب (للهاتف)
+  if (window.innerWidth <= 768) {
+    const nav = document.getElementById("top_nav");
+    if (nav) {
+      nav.classList.remove("active");
+      nav.style.display = "none";
+    }
+  }
 }
 window.showTab = showTab;
 
@@ -3271,6 +3340,92 @@ function toggleWordLearned(word, el) {
     filterVocabBySearch(query);
   }
 }
+
+// ========== تحسين قائمة الهاتف (بدون تعديل toggleMenu) ==========
+(function enhanceMobileNav() {
+  // دالة لتفعيل التمرير على القائمة
+  function enableNavScroll() {
+    if (window.innerWidth > 768) return;
+    const nav = document.getElementById("top_nav");
+    if (!nav || !nav.classList.contains("active")) return;
+
+    // حساب ارتفاع 5 عناصر
+    const items = nav.querySelectorAll(".nav-item");
+    if (items.length === 0) return;
+
+    let totalHeight = 0;
+    for (let i = 0; i < Math.min(5, items.length); i++) {
+      totalHeight += items[i].offsetHeight;
+    }
+    totalHeight += 10; // هوامش إضافية
+
+    // تطبيق الأنماط
+    nav.style.setProperty("height", totalHeight + "px", "important");
+    nav.style.setProperty("max-height", totalHeight + "px", "important");
+    nav.style.setProperty("overflow-y", "auto", "important");
+    nav.style.setProperty("overflow-x", "hidden", "important");
+    nav.style.setProperty("min-height", "0", "important");
+    nav.style.setProperty("-webkit-overflow-scrolling", "touch", "important");
+
+    // تنسيق العناصر
+    items.forEach((item) => {
+      item.style.setProperty("width", "100%", "important");
+      item.style.setProperty("padding", "14px 20px", "important");
+      item.style.setProperty("border-bottom", "1px solid #eee", "important");
+    });
+    if (items.length > 0) {
+      items[items.length - 1].style.setProperty(
+        "border-bottom",
+        "none",
+        "important",
+      );
+    }
+  }
+
+  // الاستماع لفتح القائمة (مراقبة تغيير الكلاس)
+  const observer = new MutationObserver(function (mutations) {
+    mutations.forEach(function (mutation) {
+      if (mutation.attributeName === "class") {
+        const nav = mutation.target;
+        if (nav.classList.contains("active")) {
+          setTimeout(enableNavScroll, 30);
+        }
+      }
+    });
+  });
+
+  const nav = document.getElementById("top_nav");
+  if (nav) {
+    observer.observe(nav, { attributes: true });
+  }
+
+  // إغلاق القائمة عند النقر خارجها
+  document.addEventListener("click", function (e) {
+    if (window.innerWidth > 768) return;
+    const nav = document.getElementById("top_nav");
+    const toggle = document.querySelector(".menu-toggle");
+    if (
+      nav &&
+      nav.classList.contains("active") &&
+      !nav.contains(e.target) &&
+      !toggle.contains(e.target)
+    ) {
+      nav.classList.remove("active");
+    }
+  });
+
+  // إعادة تعيين الأنماط عند تغيير حجم الشاشة
+  window.addEventListener("resize", function () {
+    if (window.innerWidth > 768) {
+      const nav = document.getElementById("top_nav");
+      if (nav) {
+        nav.style.cssText = "";
+        nav.classList.remove("active");
+      }
+    }
+  });
+})();
+
 window.updateReviewWord = updateReviewWord;
 window.addReviewWord = addReviewWord;
 window.renderReviewPage = renderReviewPage;
