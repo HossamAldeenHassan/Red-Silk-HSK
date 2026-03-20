@@ -30,18 +30,16 @@
           <span class="brand-sub">HSK1 Learning Platform</span>
         </div>
       </div>
-      <button class="menu-toggle" onclick="toggleMenu()" aria-label="Toggle menu">
+      <button class="menu-toggle" onclick="toggleMenu(event)">
         <span></span>
         <span></span>
         <span></span>
       </button>
-      <nav class="topnav" id="top_nav"></nav>
       <div class="topbar-actions">
         <div class="user-stats">
           <span id="user-xp">0 XP</span>
           <span id="user-streak">Streak 1</span>
         </div>
-        <!-- زر البينيين الجديد -->
         <button class="lang-toggle py-toggle" onclick="togglePinyin()">
           <span>🔤</span>
           <span class="pinyin-text">إخفاء Pinyin</span>
@@ -53,6 +51,12 @@
       </div>
     </div>
   </header>
+  <!-- Overlay خلف القائمة — يُغلق عند النقر عليه -->
+  <div class="nav-overlay" id="nav_overlay" onclick="closeNav()"></div>
+  <!-- القائمة خارج الـ header تماماً — لأن backdrop-filter يكسر position:fixed -->
+  <nav class="topnav" id="top_nav"></nav>
+  <!-- تلميح scroll "▼ مزيد" يظهر فوق آخر عنصر مرئي -->
+  <div class="nav-scroll-hint" id="nav_hint">▼ مزيد</div>
 
   <!-- Modal -->
   <div class="modal" id="modal">

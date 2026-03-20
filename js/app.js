@@ -1848,103 +1848,72 @@ window.translateText = translateText;
 // Modern UI Overrides (Top Navbar + Home + Pages)
 // =========================================================================
 
-function toggleMenu() {
-  const nav = document.getElementById("top_nav");
+function toggleMenu(event) {
+  if (event) event.stopPropagation();
+
+  const nav     = document.getElementById("top_nav");
+  const overlay = document.getElementById("nav_overlay");
+  const hint    = document.getElementById("nav_hint");
   if (!nav) return;
 
-  nav.classList.toggle("active");
+  // قياس الـ topbar وضبط CSS variable
+  const topbar = document.querySelector(".topbar");
+  if (topbar) {
+    const h = topbar.getBoundingClientRect().height;
+    document.documentElement.style.setProperty("--topbar-h", h + "px");
 
-  // إذا كانت القائمة مفتوحة على شاشة صغيرة، طبق الأنماط مباشرة
-  if (window.innerWidth <= 768 && nav.classList.contains("active")) {
-    // أنماط إجبارية للقائمة
-    nav.style.display = "flex";
-    nav.style.flexDirection = "column";
-    nav.style.position = "absolute";
-    nav.style.top = "60px";
-    nav.style.left = "0";
-    nav.style.right = "0";
-    nav.style.background = "#fff";
-    nav.style.maxHeight = "300px";
-    nav.style.overflowY = "auto";
-    nav.style.overflowX = "hidden";
-    nav.style.boxShadow = "0 4px 10px rgba(0,0,0,0.1)";
-    nav.style.zIndex = "1000";
-    nav.style.borderRadius = "0 0 12px 12px";
-
-    // أنماط لعناصر القائمة
-    const items = nav.querySelectorAll(".nav-item");
-    items.forEach((item) => {
-      item.style.width = "100%";
-      item.style.textAlign = "right";
-      item.style.padding = "14px 20px";
-      item.style.margin = "0";
-      item.style.borderBottom = "1px solid #eee";
-      item.style.flexShrink = "0";
-    });
-
-    // إزالة الحد من آخر عنصر
-    if (items.length > 0) {
-      items[items.length - 1].style.borderBottom = "none";
+    // ضبط موضع hint = ارتفاع topbar + 4 عناصر × 52px - 32px (ارتفاع الـ hint)
+    if (hint && window.innerWidth <= 768) {
+      hint.style.top = (h + 4 * 52 - 32) + "px";
     }
-  } else if (window.innerWidth > 768) {
-    // على الشاشات الكبيرة، أعد تعيين الأنماط
-    nav.style = "";
   }
-}
-// دالة لإعادة تعيين أنماط القائمة عند تغيير حجم الشاشة
-function resetNavOnResize() {
-  const nav = document.getElementById("top_nav");
-  if (!nav) return;
 
-  if (window.innerWidth > 768) {
-    // شاشة كبيرة: أزل الأنماط المخصصة واترك CSS يديرها
-    nav.style = "";
+  const isOpen = nav.classList.contains("active");
+  if (isOpen) {
     nav.classList.remove("active");
+    if (overlay) overlay.classList.remove("active");
+    if (hint)    hint.classList.remove("active");
   } else {
-    // شاشة صغيرة: تأكد من أن القائمة مخفية في البداية
-    if (!nav.classList.contains("active")) {
-      nav.style.display = "none";
-    }
+    nav.classList.add("active");
+    if (overlay) overlay.classList.add("active");
+    // أظهر hint فقط إذا كان عدد العناصر أكثر من 4
+    const items = nav.querySelectorAll(".nav-item");
+    if (hint && items.length > 4) hint.classList.add("active");
+
+    // أخفِ hint عند الـ scroll لآخر القائمة
+    nav.addEventListener("scroll", function onNavScroll() {
+      if (!hint) return;
+      const atBottom = nav.scrollTop + nav.clientHeight >= nav.scrollHeight - 4;
+      hint.classList.toggle("active", !atBottom);
+      if (atBottom) nav.removeEventListener("scroll", onNavScroll);
+    });
+  }
+
+  if (window.innerWidth > 768) {
+    nav.style.cssText = "";
+    if (overlay) overlay.classList.remove("active");
+    if (hint)    hint.classList.remove("active");
   }
 }
-
-// استدعاء الدالة عند تحميل الصفحة وعند تغيير الحجم
-window.addEventListener("resize", resetNavOnResize);
-document.addEventListener("DOMContentLoaded", resetNavOnResize);
-
-// إغلاق القائمة عند النقر على أي رابط
-document.querySelectorAll(".nav-item").forEach((item) => {
-  item.addEventListener("click", function () {
-    if (window.innerWidth <= 768) {
-      const nav = document.getElementById("top_nav");
-      nav.classList.remove("active");
-      nav.style.display = "none";
-    }
-  });
-});
-
-// إغلاق القائمة عند النقر خارجها
-document.addEventListener("click", function (e) {
-  const nav = document.getElementById("top_nav");
-  const toggle = document.querySelector(".menu-toggle");
-  if (window.innerWidth <= 768 && nav && nav.classList.contains("active")) {
-    if (!nav.contains(e.target) && !toggle.contains(e.target)) {
-      nav.classList.remove("active");
-      // إخفاء القائمة بعد الإغلاق
-      nav.style.display = "none";
-    }
-  }
-});
-
-// إغلاق القائمة عند تغيير حجم الشاشة إلى كبيرة
-window.addEventListener("resize", function () {
-  if (window.innerWidth > 768) {
-    const nav = document.getElementById("top_nav");
-    if (nav) nav.classList.remove("active");
-  }
-});
 window.toggleMenu = toggleMenu;
 
+function closeNav() {
+  const nav     = document.getElementById("top_nav");
+  const overlay = document.getElementById("nav_overlay");
+  const hint    = document.getElementById("nav_hint");
+  if (nav)     nav.classList.remove("active");
+  if (overlay) overlay.classList.remove("active");
+  if (hint)    hint.classList.remove("active");
+}
+window.closeNav = closeNav;
+
+// إغلاق عند تغيير حجم الشاشة
+window.addEventListener("resize", function () {
+  closeNav();
+  const nav = document.getElementById("top_nav");
+  if (nav && window.innerWidth > 768) nav.style.cssText = "";
+});
+// دالة لإعادة تعيين أنماط القائمة عند تغيير حجم الشاشة
 function getLessonStatus(n) {
   const learned = learnedWords.size;
   const wordsPerLesson = Math.ceil(500 / 15);
@@ -3228,11 +3197,7 @@ function showTab(tabId) {
   }
   // إغلاق القائمة تلقائياً بعد تغيير التبويب (للهاتف)
   if (window.innerWidth <= 768) {
-    const nav = document.getElementById("top_nav");
-    if (nav) {
-      nav.classList.remove("active");
-      nav.style.display = "none";
-    }
+    closeNav();
   }
 }
 window.showTab = showTab;
@@ -3341,90 +3306,9 @@ function toggleWordLearned(word, el) {
   }
 }
 
-// ========== تحسين قائمة الهاتف (بدون تعديل toggleMenu) ==========
-(function enhanceMobileNav() {
-  // دالة لتفعيل التمرير على القائمة
-  function enableNavScroll() {
-    if (window.innerWidth > 768) return;
-    const nav = document.getElementById("top_nav");
-    if (!nav || !nav.classList.contains("active")) return;
-
-    // حساب ارتفاع 5 عناصر
-    const items = nav.querySelectorAll(".nav-item");
-    if (items.length === 0) return;
-
-    let totalHeight = 0;
-    for (let i = 0; i < Math.min(5, items.length); i++) {
-      totalHeight += items[i].offsetHeight;
-    }
-    totalHeight += 10; // هوامش إضافية
-
-    // تطبيق الأنماط
-    nav.style.setProperty("height", totalHeight + "px", "important");
-    nav.style.setProperty("max-height", totalHeight + "px", "important");
-    nav.style.setProperty("overflow-y", "auto", "important");
-    nav.style.setProperty("overflow-x", "hidden", "important");
-    nav.style.setProperty("min-height", "0", "important");
-    nav.style.setProperty("-webkit-overflow-scrolling", "touch", "important");
-
-    // تنسيق العناصر
-    items.forEach((item) => {
-      item.style.setProperty("width", "100%", "important");
-      item.style.setProperty("padding", "14px 20px", "important");
-      item.style.setProperty("border-bottom", "1px solid #eee", "important");
-    });
-    if (items.length > 0) {
-      items[items.length - 1].style.setProperty(
-        "border-bottom",
-        "none",
-        "important",
-      );
-    }
-  }
-
-  // الاستماع لفتح القائمة (مراقبة تغيير الكلاس)
-  const observer = new MutationObserver(function (mutations) {
-    mutations.forEach(function (mutation) {
-      if (mutation.attributeName === "class") {
-        const nav = mutation.target;
-        if (nav.classList.contains("active")) {
-          setTimeout(enableNavScroll, 30);
-        }
-      }
-    });
-  });
-
-  const nav = document.getElementById("top_nav");
-  if (nav) {
-    observer.observe(nav, { attributes: true });
-  }
-
-  // إغلاق القائمة عند النقر خارجها
-  document.addEventListener("click", function (e) {
-    if (window.innerWidth > 768) return;
-    const nav = document.getElementById("top_nav");
-    const toggle = document.querySelector(".menu-toggle");
-    if (
-      nav &&
-      nav.classList.contains("active") &&
-      !nav.contains(e.target) &&
-      !toggle.contains(e.target)
-    ) {
-      nav.classList.remove("active");
-    }
-  });
-
-  // إعادة تعيين الأنماط عند تغيير حجم الشاشة
-  window.addEventListener("resize", function () {
-    if (window.innerWidth > 768) {
-      const nav = document.getElementById("top_nav");
-      if (nav) {
-        nav.style.cssText = "";
-        nav.classList.remove("active");
-      }
-    }
-  });
-})();
+// ========== قائمة الهاتف — نظيفة =========================================
+// كل منطق القائمة يتحكم فيه CSS عبر class "active" فقط
+// لا inline styles، لا قياس ارتفاع يدوي
 
 window.updateReviewWord = updateReviewWord;
 window.addReviewWord = addReviewWord;
