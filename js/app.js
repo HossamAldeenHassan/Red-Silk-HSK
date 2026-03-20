@@ -2,7 +2,7 @@
 const STORAGE_KEY = "hsk1_progress";
 let userProgress = {
   words: {},
-  stats: { xp: 0, streak: 1, lastLogin: new Date().toDateString() },
+  stats: { xp: 0, streak: 1, lastLogin: new Date().toDateString(), completedLessons: [], dialogsCompleted: 0, studyMinutes: 0 },
 };
 
 function initProgress() {
@@ -167,6 +167,18 @@ const REVIEW_KEY = "hsk1_review";
 let reviewList = [];
 let fcState = { topic: 0, idx: 0, flipped: false, filtered: [] };
 
+// Data globals — assigned by loadLevel() after fetch completes.
+// Initialized to safe empty values so synchronous code does not throw ReferenceError.
+let currentLevel = null;
+let W = [];
+let SENTS = {};
+let TOPICS = [];
+let STORIES = [];
+let pinyinExamples = {};
+let DIALOGUES = {};
+let GRAMMAR = [];
+let BIGEXAM = [];
+
 function toggleLang() {
   currentLang = currentLang === "ar" ? "en" : "ar";
   document.documentElement.lang = currentLang;
@@ -197,9 +209,7 @@ function toggleLang() {
   let elLogo = document.querySelector(".nav-logo-ar");
   if (elLogo)
     elLogo.innerText =
-      currentLang === "ar"
-        ? "HSK 1 — المنهج الشامل"
-        : "HSK 1 Comprehensive Course";
+      currentLang === "ar" ? "HSK 1 — المنهج الشامل 🐼" : "HSK 1 Course 🐼";
 
   // Rebuild interface
   buildNav();
@@ -215,11 +225,12 @@ function saveProgress() {
 }
 
 function updateProgressBar() {
-  const pct = Math.round((learnedWords.size / 500) * 100);
+  const total = (typeof W !== "undefined" && W.length > 0) ? W.length : 500;
+  const pct = total === 0 ? 0 : Math.round((learnedWords.size / total) * 100);
   const bar = document.getElementById("gbar");
   if (bar) bar.style.width = pct + "%";
   const glbl = document.getElementById("glbl");
-  if (glbl) glbl.innerHTML = `✅ حفظت ${learnedWords.size} من 500 كلمة`;
+  if (glbl) glbl.innerHTML = currentLang === "en" ? `✅ Learned ${learnedWords.size} out of ${total} words` : `✅ حفظت ${learnedWords.size} من ${total} كلمة`;
   const learnedCount = document.getElementById("learned_count");
   if (learnedCount) learnedCount.textContent = learnedWords.size;
 }
@@ -239,25 +250,20 @@ function speakChinese(text, isPinyin = false) {
 
 function togglePinyin() {
   showPinyin = !showPinyin;
-  // إخفاء/إظهار جميع عناصر البينيين
+  // Hide/Show all pinyin elements
   document
     .querySelectorAll(
-      ".py, .opt-py, .bwc-py, .fc-py, .chip-pinyin, .sent-py, .line-py",
+      ".py, .opt-py, .bwc-py, .fc-py, .chip-pinyin, .sent-py, .line-py"
     )
     .forEach((el) => {
       el.style.display = showPinyin ? "block" : "none";
     });
 
-  // تحديث نصوص الأزرار التي تحمل كلاس py-toggle
-  document.querySelectorAll(".py-toggle").forEach((btn) => {
-    const textSpan = btn.querySelector(".pinyin-text");
-    if (textSpan) {
-      textSpan.innerText = showPinyin ? "إخفاء Pinyin" : "إظهار Pinyin";
-    } else {
-      // إذا كان الزر لا يحتوي على span (مثل الأزرار القديمة)، نغير محتواه بالكامل
-      btn.innerHTML = showPinyin ? "إخفاء Pinyin 👁️" : "إظهار Pinyin 👁️";
-    }
-  });
+  // Update floating eye button opacity to reflect state
+  const btn = document.getElementById("floating-py-toggle");
+  if (btn) {
+    btn.style.opacity = showPinyin ? "1" : "0.4";
+  }
 }
 
 function zhSpan(hanzi, pinyin) {
@@ -287,11 +293,12 @@ window.flipCard = function (cardId) {
 // =========================================================================
 function renderStoriesPage() {
   const isEn = currentLang === "en";
+  if (!STORIES || !STORIES.length) return `<div style="padding:2rem;text-align:center;opacity:.6"><p>${isEn ? "No stories available." : "لا توجد قصص متاحة."}</p></div>`;
 
   // تقسيم القصص حسب المستوى
-  const easyStories = STORIES.filter((s) => s.level === "easy");
-  const mediumStories = STORIES.filter((s) => s.level === "medium");
-  const advancedStories = STORIES.filter((s) => s.level === "advanced");
+  const easyStories = (STORIES || []).filter((s) => s.level === "easy");
+  const mediumStories = (STORIES || []).filter((s) => s.level === "medium");
+  const advancedStories = (STORIES || []).filter((s) => s.level === "advanced");
 
   return `
     <div class="stories-page">
@@ -364,7 +371,7 @@ function renderStoryCard(story) {
   };
 
   // عدد الكلمات التقريبي (للعرض)
-  const wordCount = story.content.reduce(
+  const wordCount = (story.content || []).reduce(
     (acc, line) => acc + line.zh.length,
     0,
   );
@@ -387,7 +394,7 @@ function renderStoryCard(story) {
   `;
 }
 function showStory(storyId) {
-  const story = STORIES.find((s) => s.id === storyId);
+  const story = (STORIES || []).find((s) => s.id === storyId);
   if (!story) return;
 
   const isEn = currentLang === "en";
@@ -438,7 +445,7 @@ function showStory(storyId) {
               .map(
                 (line) => `
               <div class="story-line">
-                <div class="story-line-zh" onclick="playAudio('${line.zh.replace(/'/g, "\\'")}')">
+                <div class="story-line-zh" onclick="playAudio('${(line.zh || '').replace(/'/g, "\\'")}')">
                   ${line.zh} <span class="audio-icon">🔊</span>
                 </div>
                 <div class="story-line-py py" style="display:${showPinyin ? "block" : "none"}">
@@ -492,7 +499,6 @@ function renderQuestion(cid) {
   const pct = Math.round((state.idx / state.total) * 100);
   let html = `<div class="quiz-header">
         <span class="quiz-prog">${state.idx + 1} / ${state.total}</span>
-        <button class="py-toggle" onclick="togglePinyin()">${showPinyin ? "إخفاء Pinyin 👁️" : "إظهار Pinyin 👁️"}</button>
         <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
       </div>
       <div class="quiz-q">
@@ -501,11 +507,11 @@ function renderQuestion(cid) {
       </div>
       <div class="opts" id="${cid}_opts">`;
 
-  q.opts.forEach((o, i) => {
+  (q.opts || []).forEach((o, i) => {
     let optHtml = o;
     // إذا كان الخيار يحتوي على حروف صينية، نضيف البينيين تحته
     if (/[\u4e00-\u9fa5]/.test(o)) {
-      const found = W.find((w) => w[0] === o);
+      const found = (W || []).find((w) => w[0] === o);
       if (found) {
         optHtml =
           o +
@@ -548,7 +554,7 @@ function answerQuiz(cid, chosen) {
   expHtml += `<p class="exp-result">${chosen === correct ? "✅ إجابة صحيحة!" : "❌ إجابة خاطئة — الصحيحة: <strong>" + q.opts[correct] + "</strong>"}</p>`;
   if (q.exp) expHtml += `<p class="exp-detail">${q.exp}</p>`;
   expHtml += `<div class="all-opts-exp"><strong>📋 شرح جميع الخيارات:</strong><ul>`;
-  q.opts.forEach((o, i) => {
+  (q.opts || []).forEach((o, i) => {
     const icon = i === correct ? "✅" : "❌";
     expHtml += `<li>${icon} <strong>${o}</strong>${i === correct ? " — الإجابة الصحيحة" : ""}</li>`;
   });
@@ -686,7 +692,7 @@ function renderPinyinBasics() {
         <div class="py-group" style="background:#fdf8f0; padding:1rem; border-radius:8px; margin-bottom:1rem; border-right:3px solid #c0392b;">
           <h5 style="color:#c0392b; margin-top:0;">${g.title}</h5>
           <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
-            ${g.items.map((c) => `<button class="py-card" onclick="speakChinese('${c}', true)">${c}</button>`).join("")}
+            ${(g.items || []).map((c) => `<button class="py-card" onclick="speakChinese('${c}', true)">${c}</button>`).join("")}
           </div>
         </div>
       `,
@@ -796,6 +802,10 @@ function renderTones() {
 }
 
 function renderPinyinPage() {
+  if (!pinyinExamples || !Object.keys(pinyinExamples).length) {
+    const isEn = currentLang === "en";
+    return `<div style="padding:2rem;text-align:center;opacity:.6"><p>${isEn ? "No pinyin data." : "لا توجد بيانات بينيين."}</p></div>`;
+  }
   return renderPinyinBasics() + renderTones();
 }
 // =========================================================================
@@ -805,7 +815,7 @@ function initFlashcards(topicN) {
   fcState.topic = topicN;
   fcState.idx = 0;
   fcState.flipped = false;
-  fcState.filtered = topicN === 0 ? W : W.filter((w) => w[4] === topicN);
+  fcState.filtered = topicN === 0 ? (W || []) : (W || []).filter((w) => w[4] === topicN);
   renderFC();
 }
 
@@ -881,7 +891,7 @@ function jumpToFC(topicN, word) {
     fcState.filtered.length === 0
   ) {
     fcState.topic = topicN;
-    fcState.filtered = W.filter((w) => w[4] === topicN);
+    fcState.filtered = (W || []).filter((w) => w[4] === topicN);
     fcState.idx = 0;
     fcState.flipped = false;
   }
@@ -930,7 +940,7 @@ function renderDialogue(n) {
         <div class="dialog-line" data-speaker="${l.sp}">
           <span class="spk-badge spk-${l.sp}">${d.speakers[l.sp]}</span>
           <div class="line-content">
-            <div class="line-zh" onclick="playAudio('${l.zh.replace(/'/g, "\\'")}')">
+            <div class="line-zh" onclick="playAudio('${(l.zh || '').replace(/'/g, "\\'")}')">
               ${l.zh} <span class="audio-icon">🔊</span>
             </div>
             <div class="line-py py" style="display:${showPinyin ? "block" : "none"}">${l.py}</div>
@@ -973,7 +983,7 @@ function renderGrammarRule(g) {
         ${q.zh ? `<div class="q-zh">${zhSpan(q.zh, q.py || "")}</div>` : ""}
         </div>
         <div class="opts" id="${qid}_opts">`;
-    q.opts.forEach(
+    (q.opts || []).forEach(
       (o, i) =>
         (qhtml += `<button class="opt-btn" onclick="answerQuiz('${qid}',${i})">${o}</button>`),
     );
@@ -994,18 +1004,22 @@ function renderGrammarRule(g) {
         </div>
         <div class="gram-body hidden" id="gbody_${g.id}">
           <p class="gram-exp">${g.exp}</p>
-          <div class="gram-rules"><ul>${g.rules.map((r) => `<li>${r}</li>`).join("")}</ul></div>
+          <div class="gram-rules"><ul>${(g.rules || []).map((r) => `<li>${r}</li>`).join("")}</ul></div>
           <div class="gram-examples">
             <h5>📝 أمثلة</h5>
-            ${g.ex
+            ${(g.ex || [])
               .map(
-                (
-                  e,
-                ) => `<div class="gram-ex-row" onclick="playAudio('${e[0].replace(/'/g, "\\'")}')" style="cursor:pointer;" title="استمع">
-              <div class="gram-ex-zh">${zhSpan(e[0], e[1])} <span style="font-size:.7rem;opacity:.5">🔊</span></div>
-              <div class="gram-ex-ar">${e[2]}</div>
-              ${e[3] ? `<div class="gram-ex-note">💡 ${e[3]}</div>` : ""}
-            </div>`,
+                (e) => {
+                  const zh = Array.isArray(e) ? e[0] : (e.zh || "");
+                  const py = Array.isArray(e) ? e[1] : (e.py || "");
+                  const ar = Array.isArray(e) ? e[2] : (e.ar || "");
+                  const note = Array.isArray(e) ? e[3] : (e.note || "");
+                  return `<div class="gram-ex-row" onclick="playAudio('${(zh || "").replace(/'/g, "\\'")}')" style="cursor:pointer;" title="استمع">
+              <div class="gram-ex-zh">${zhSpan(zh || "", py || "")} <span style="font-size:.7rem;opacity:.5">🔊</span></div>
+              <div class="gram-ex-ar">${ar || ""}</div>
+              ${note ? `<div class="gram-ex-note">💡 ${note}</div>` : ""}
+            </div>`;
+                }
               )
               .join("")}
           </div>
@@ -1027,7 +1041,7 @@ function toggleGram(id) {
 // توليد أسئلة ديناميكية لكل موضوع
 // =========================================================================
 function generateDynamicQuiz(topicNum) {
-  const words = W.filter((w) => w[4] === topicNum);
+  const words = (W || []).filter((w) => w[4] === topicNum);
   if (words.length === 0) return [];
   const questions = [];
   const shuffled = [...words].sort(() => Math.random() - 0.5);
@@ -1073,9 +1087,10 @@ function generateDynamicQuiz(topicNum) {
 // عرض صفحة الموضوع (Topic)
 // =========================================================================
 function renderTopic(n) {
+  if (!TOPICS || !TOPICS[n - 1]) return '<div style="padding:1rem;text-align:center;opacity:.5">...</div>';
   const t = TOPICS[n - 1];
-  const words = W.filter((w) => w[4] === n);
-  const sents = SENTS[n] || [];
+  const words = (W || []).filter((w) => w[4] === n);
+  const sents = (SENTS || {})[n] || [];
   const quizQs = generateDynamicQuiz(n);
   const qid = `topic_q_${n}`;
 
@@ -1099,7 +1114,6 @@ function renderTopic(n) {
               <div class="topic-en-title">${t.s}</div>
             </div>
           </div>
-          <button class="py-toggle white-py" onclick="togglePinyin()">${showPinyin ? "إخفاء Pinyin 👁️" : "إظهار Pinyin 👁️"}</button>
         </div>
         
         <div class="section-tabs">
@@ -1126,7 +1140,7 @@ function renderTopic(n) {
                 .map(
                   (
                     w,
-                  ) => `<div class="word-card" onclick="playAudio('${w[0].replace(/'/g, "\\'")}'); jumpToFC(${n}, '${w[0].replace(/'/g, "\\'")}')">
+                  ) => `<div class="word-card" onclick="playAudio('${(w[0] || '').replace(/'/g, "\\'")}'); jumpToFC(${n}, '${(w[0] || '').replace(/'/g, "\\'")}')">
                 <div class="wc-zh">${w[0]}</div>
                 <div class="wc-py py" style="display:${showPinyin ? "block" : "none"}">${w[1]}</div>
                 <div class="wc-ar">${w[2]}</div>
@@ -1142,7 +1156,7 @@ function renderTopic(n) {
           ${sents
             .map(
               (s) => `<div class="sent-card">
-            <div class="sent-zh" onclick="playAudio('${s[0].replace(/'/g, "\\'")}');" style="cursor:pointer;" title="انقر للسماع">${zhSpan(s[0], s[1])} <span style="font-size:.75rem;opacity:.45">🔊</span></div>
+            <div class="sent-zh" onclick="playAudio('${(s[0] || '').replace(/'/g, "\\'")}');" style="cursor:pointer;" title="انقر للسماع">${zhSpan(s[0], s[1])} <span style="font-size:.75rem;opacity:.45">🔊</span></div>
             <div class="sent-ar">${s[2]}</div>
             ${s[3] ? `<div class="sent-note">💡 ${s[3]}</div>` : ""}
           </div>`,
@@ -1161,14 +1175,13 @@ function renderTopic(n) {
     const q = window[qid + "_questions"][0];
     html += `<div class="quiz-header">
           <span class="quiz-prog">1 / ${quizQs.length}</span>
-          <button class="py-toggle" onclick="togglePinyin()">${showPinyin ? "إخفاء Pinyin 👁️" : "إظهار Pinyin 👁️"}</button>
           <div class="prog-bar"><div class="prog-fill" style="width:0%"></div></div>
         </div>
         <div class="quiz-q"><p class="q-text">${q.q}</p>
         ${q.zh ? `<div class="q-zh">${zhSpan(q.zh, q.py || "")}</div>` : ""}
         </div>
         <div class="opts" id="${qid}_opts">`;
-    q.opts.forEach(
+    (q.opts || []).forEach(
       (o, i) =>
         (html += `<button class="opt-btn" onclick="answerQuiz('${qid}',${i}); updateWordSRS('${q.zh || ""}', ${i}===window['${qid}_questions'][window['${qid}_state'].idx].a);">${o}</button>`),
     );
@@ -1232,7 +1245,7 @@ function renderIntro() {
           <div class="intro-topics">
             <h3>${isEn ? "Learning Modules" : "الوحدات الدراسية"}</h3>
             <div class="topic-grid">
-              ${TOPICS.map(
+              ${(TOPICS || []).map(
                 (
                   t,
                   i,
@@ -1332,7 +1345,7 @@ function renderPinyinBasics() {
             <div class="py-group" style="background:#fdf8f0; padding:1rem; border-radius:8px; margin-bottom:1rem; border-right:3px solid #c0392b;">
               <h5 style="color:#c0392b; margin-top:0;">${g.title}</h5>
               <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
-                ${g.items.map((c) => `<button class="py-card" onclick="speakChinese('${c}', true)">${c}</button>`).join("")}
+                ${(g.items || []).map((c) => `<button class="py-card" onclick="speakChinese('${c}', true)">${c}</button>`).join("")}
               </div>
             </div>
           `,
@@ -1424,7 +1437,7 @@ function renderTones() {
                 <div class="tone-name">${t.name}</div>
                 <div class="tone-desc">${t.desc}</div>
                 <div class="tone-examples">
-                  ${t.ex.map((e) => `<span class="tone-ex" onclick="speakChinese('${e[0]}')">${e[0]} <em>${e[1]}</em> = ${e[2]}</span>`).join("")}
+                  ${(t.ex || []).map((e) => `<span class="tone-ex" onclick="speakChinese('${e[0]}')">${e[0]} <em>${e[1]}</em> = ${e[2]}</span>`).join("")}
                 </div>
               </div>
             `,
@@ -1440,12 +1453,16 @@ function renderTones() {
 }
 
 function renderGrammar() {
+  const isEn = currentLang === "en";
+  if (!GRAMMAR || !GRAMMAR.length) {
+    return `<div style="padding:3rem;text-align:center;opacity:.6;"><p>${isEn ? "Select a level to view grammar." : "اختر المستوى لعرض القواعد."}</p></div>`;
+  }
   return `
         <div class="page-header">
           <h2>📐 القواعد الأساسية — HSK 1</h2>
           <p>15 قاعدة أساسية شاملة مع أمثلة وتمارين</p>
         </div>
-        ${GRAMMAR.map((g) => renderGrammarRule(g)).join("")}
+        ${(GRAMMAR || []).map((g) => renderGrammarRule(g)).join("")}
       `;
 }
 
@@ -1454,7 +1471,6 @@ function renderVocab() {
         <div class="section-card" style="background:#fff; border-radius:12px; padding:1rem;">
           <div class="section-title">📖 جميع الكلمات (500)</div>
           <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1rem;">
-            <button class="py-toggle" onclick="togglePinyin()">${showPinyin ? "إخفاء Pinyin 👁️" : "إظهار Pinyin 👁️"}</button>
             <button class="btn-sec" onclick="filterVocab('all')">الكل</button>
             <button class="btn-sec" onclick="filterVocab('learned')">المحفوظة ✅</button>
             <button class="btn-sec" onclick="filterVocab('new')">الجديدة 🆕</button>
@@ -1471,17 +1487,22 @@ function filterVocab(filter) {
     filter === "all"
       ? W
       : filter === "learned"
-        ? W.filter((w) => learnedWords.has(w[0]))
-        : W.filter((w) => !learnedWords.has(w[0]));
+        ? (W || []).filter((w) => learnedWords.has(w[0]))
+        : (W || []).filter((w) => !learnedWords.has(w[0]));
   grid.innerHTML = words
     .map((w) => {
       const isLearned = learnedWords.has(w[0]);
       return `
-          <div class="big-wc ${isLearned ? "learned" : ""}" onclick="speakChinese('${w[0]}'); toggleWordLearned('${w[0]}', this)">
-            <div class="bwc-num">${W.indexOf(w) + 1}</div>
-            <div class="bwc-zh">${w[0]}</div>
-            <div class="bwc-py py" style="display:${showPinyin ? "block" : "none"}">${w[1]}</div>
-            <div class="bwc-type">${w[3] || ""}</div>
+          <div class="big-wc ${isLearned ? "learned" : ""}" id="bwc_${w[0]}">
+            <div class="bwc-content" onclick="speakChinese('${w[0]}')" style="cursor:pointer; flex: 1; text-align: center;">
+              <div class="bwc-num">${W.indexOf(w) + 1}</div>
+              <div class="bwc-zh">${w[0]}</div>
+              <div class="bwc-py py" style="display:${showPinyin ? "block" : "none"}">${w[1]}</div>
+              <div class="bwc-type">${w[3] || ""}</div>
+            </div>
+            <button class="bwc-toggle-btn" onclick="toggleWordLearned('${w[0]}', document.getElementById('bwc_${w[0]}'))">
+              ${isLearned ? "❌" : "🔖"}
+            </button>
           </div>
         `;
     })
@@ -1492,9 +1513,13 @@ function toggleWordLearned(word, el) {
   if (learnedWords.has(word)) {
     learnedWords.delete(word);
     el.classList.remove("learned");
+    const btn = el.querySelector(".bwc-toggle-btn");
+    if (btn) btn.innerText = "🔖";
   } else {
     learnedWords.add(word);
     el.classList.add("learned");
+    const btn = el.querySelector(".bwc-toggle-btn");
+    if (btn) btn.innerText = "❌";
   }
   saveProgress();
   updateProgressBar();
@@ -1592,7 +1617,7 @@ window.translateText = async function () {
         const levelLabel = entry.level ? `HSK${entry.level}` : "";
         const typeLabel = entry.type || "";
         const translation = isEn ? entry.en : entry.ar;
-        chipsHTML += `<div class="word-chip" onclick="speakChinese('${zh.replace(/'/g, "\\'")}')" title="${isEn ? "Click to pronounce" : "انقر للنطق"}">
+        chipsHTML += `<div class="word-chip" onclick="speakChinese('${(zh || '').replace(/'/g, "\\'")}')" title="${isEn ? "Click to pronounce" : "انقر للنطق"}">
               <div class="chip-hanzi">${zh}</div>
               <div class="chip-pinyin">${entry.py}</div>
               <div class="chip-ar">${translation}</div>
@@ -1645,6 +1670,10 @@ window.translateText = async function () {
 };
 
 function renderBigExam() {
+  if (!BIGEXAM || !(BIGEXAM || []).length) {
+    const isEn = currentLang === "en";
+    return `<div style="padding:2rem;text-align:center;opacity:.6"><p>${isEn ? "No exam questions available." : "لا توجد أسئلة امتحان."}</p></div>`;
+  }
   return `
         <div class="bigexam-page">
           <div class="exam-hero">
@@ -1684,8 +1713,8 @@ function buildNav() {
   const isEn = currentLang === "en";
 
   // قائمة العناصر الرئيسية مع إضافة pinyin
-  const items = [
-    ["home", "🏠", isEn ? "Home" : "الرئيسية"],
+  const items = currentLevel ? [
+    ["dashboard", "📊", isEn ? "Dashboard" : "لوحة القيادة"],
     ["lessons", "📚", isEn ? "Lessons" : "الدروس"],
     ["pinyin", "🔤", isEn ? "Pinyin Basics" : "أساسيات Pinyin"], // هذا السطر الجديد
     ["vocab", "📖", isEn ? "Vocabulary" : "المفردات"],
@@ -1695,9 +1724,13 @@ function buildNav() {
     ["stories", "📖", isEn ? "Stories" : "قصص"],
     ["tests", "🧪", isEn ? "Tests" : "الاختبارات"],
     ["review", "📝", isEn ? "Review" : "مراجعة الكلمات"],
-    ["progress", "📊", isEn ? "Progress" : "التقدم"],
+    ["progress", "📈", isEn ? "Progress" : "التقدم"],
     ["translator", "🔊", isEn ? "Translator" : "المترجم الذكي"],
     ["profile", "👤", isEn ? "Profile" : "الملف"],
+    ["home", "🔙", isEn ? "Change Level" : "تغيير المستوى"],
+  ] : [
+    ["home", "🏠", isEn ? "Home" : "الرئيسية"],
+    ["profile", "👤", isEn ? "Profile" : "الملف"]
   ];
 
   // بناء الأزرار
@@ -1716,18 +1749,22 @@ function buildContentFrames() {
   const mainArea = document.getElementById("main_area");
   let html = "";
 
-  html += `<div id="sec-intro" class="sec active" style="padding:.5rem">${renderIntro()}</div>`;
-  html += `<div id="sec-pinyin" class="sec" style="padding:.5rem">${renderPinyinBasics()}</div>`;
-  html += `<div id="sec-tones" class="sec" style="padding:.5rem">${renderTones()}</div>`;
-  html += `<div id="sec-grammar" class="sec" style="padding:.5rem">${renderGrammar()}</div>`;
-  html += `<div id="sec-vocab" class="sec" style="padding:.5rem">${renderVocab()}</div>`;
-  html += `<div id="sec-shadowing" class="sec" style="padding:.5rem">${renderShadowing()}</div>`;
-  html += `<div id="sec-stories" class="sec">${renderStoriesPage()}</div>`;
-  html += `<div id="sec-translator" class="sec" style="padding:.5rem">${renderSmartTranslator()}</div>`;
-  html += `<div id="sec-bigexam" class="sec" style="padding:.5rem">${renderBigExam()}</div>`;
+  html += `<div id="sec-home" class="sec active">${renderHome()}</div>`;
+  
+  if (currentLevel) {
+    html += `<div id="sec-dashboard" class="sec" style="padding:.5rem">${typeof renderDashboard === "function" ? renderDashboard() : ""}</div>`;
+    html += `<div id="sec-pinyin" class="sec" style="padding:.5rem">${renderPinyinBasics()}</div>`;
+    html += `<div id="sec-tones" class="sec" style="padding:.5rem">${renderTones()}</div>`;
+    html += `<div id="sec-grammar" class="sec" style="padding:.5rem">${renderGrammar()}</div>`;
+    html += `<div id="sec-vocab" class="sec" style="padding:.5rem">${renderVocab()}</div>`;
+    html += `<div id="sec-shadowing" class="sec" style="padding:.5rem">${renderShadowing()}</div>`;
+    html += `<div id="sec-stories" class="sec">${renderStoriesPage()}</div>`;
+    html += `<div id="sec-translator" class="sec" style="padding:.5rem">${renderSmartTranslator()}</div>`;
+    html += `<div id="sec-bigexam" class="sec" style="padding:.5rem">${renderBigExam()}</div>`;
 
-  for (let i = 1; i <= 15; i++) {
-    html += `<div id="sec-t${i}" class="sec">${renderTopic(i)}</div>`;
+    for (let i = 1; i <= 15; i++) {
+        html += `<div id="sec-t${i}" class="sec">${renderTopic(i)}</div>`;
+    }
   }
 
   mainArea.innerHTML = html;
@@ -1739,6 +1776,7 @@ function buildContentFrames() {
 
 function renderShadowing() {
   let isEn = currentLang === "en";
+  if (!DIALOGUES || !Object.keys(DIALOGUES).length) return `<div style="padding:2rem;text-align:center;opacity:.6"><p>${isEn ? "No shadowing content." : "لا يوجد محتوى ترديد."}</p></div>`;
   let html = `<div class="page-header">
         <h2>🦻 ${isEn ? "Shadowing Unit" : "الترديد الصوتي"} (Shadowing)</h2>
         <p>${isEn ? "Listen to the sentence native speed and tone and try to repeat it" : "استمع للجملة بصوت أصلي ثم حاول تكرارها بنفس النغمة والسرعة لتقوية النطق"}</p>
@@ -1751,9 +1789,9 @@ function renderShadowing() {
 
   for (let topicNum in DIALOGUES) {
     let topicTitle =
-      TOPICS.find((t) => t.n == topicNum)?.t ||
+      (TOPICS || []).find((t) => t.n == topicNum)?.t ||
       (isEn ? "Topic " : "موضوع ") + topicNum;
-    if (isEn) topicTitle = TOPICS.find((t) => t.n == topicNum)?.s || topicTitle;
+    if (isEn) topicTitle = (TOPICS || []).find((t) => t.n == topicNum)?.s || topicTitle;
 
     html += `<div class="shadow-lesson">
           <div class="shadow-header" onclick="this.parentElement.classList.toggle('open')">
@@ -1770,8 +1808,8 @@ function renderShadowing() {
                 <div class="py" style="display:${showPinyin ? "block" : "none"}; color:#1a5276; font-weight:bold; font-size:0.85rem">${l.py}</div>
                 <div class="sent-ar">${isEn ? l.s || l.ar : l.ar}</div>
                 <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
-                    <button class="btn-sec" onclick="playAudio('${l.zh.replace(/'/g, "\\'").replace(/"/g, "&quot;")}', 1.0)">▶️ ${isEn ? "Normal Speed" : "سرعة طبيعية"}</button>
-                    <button class="btn-sec" onclick="playAudio('${l.zh.replace(/'/g, "\\'").replace(/"/g, "&quot;")}', 0.5)">🐢 ${isEn ? "Slow Speed" : "سرعة بطيئة"}</button>
+                    <button class="btn-sec" onclick="playAudio('${(l.zh || '').replace(/'/g, "\\'").replace(/"/g, "&quot;")}', 1.0)">▶️ ${isEn ? "Normal Speed" : "سرعة طبيعية"}</button>
+                    <button class="btn-sec" onclick="playAudio('${(l.zh || '').replace(/'/g, "\\'").replace(/"/g, "&quot;")}', 0.5)">🐢 ${isEn ? "Slow Speed" : "سرعة بطيئة"}</button>
                 </div>
               </div>`;
       });
@@ -1818,12 +1856,18 @@ function showTab(tabId) {
 // =========================================================================
 // التهيئة
 // =========================================================================
-document.addEventListener("DOMContentLoaded", () => {
+function initApp() {
   buildNav();
   buildContentFrames();
-  updateProgressBar();
-  showTab("intro");
-});
+  if (typeof updateProgressBar === "function") updateProgressBar();
+  showTab("home");
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initApp);
+} else {
+  initApp();
+}
 
 // تصدير الدوال المطلوبة للاستخدام العام
 window.showTab = showTab;
@@ -1851,59 +1895,45 @@ window.translateText = translateText;
 function toggleMenu(event) {
   if (event) event.stopPropagation();
 
-  const nav     = document.getElementById("top_nav");
+  const nav = document.getElementById("top_nav");
   const overlay = document.getElementById("nav_overlay");
-  const hint    = document.getElementById("nav_hint");
+  const toggleBtn = document.querySelector(".menu-toggle");
+
   if (!nav) return;
 
-  // قياس الـ topbar وضبط CSS variable
-  const topbar = document.querySelector(".topbar");
-  if (topbar) {
-    const h = topbar.getBoundingClientRect().height;
-    document.documentElement.style.setProperty("--topbar-h", h + "px");
-
-    // ضبط موضع hint = ارتفاع topbar + 4 عناصر × 52px - 32px (ارتفاع الـ hint)
-    if (hint && window.innerWidth <= 768) {
-      hint.style.top = (h + 4 * 52 - 32) + "px";
-    }
-  }
-
   const isOpen = nav.classList.contains("active");
+
   if (isOpen) {
     nav.classList.remove("active");
     if (overlay) overlay.classList.remove("active");
-    if (hint)    hint.classList.remove("active");
+    if (toggleBtn) {
+      toggleBtn.classList.remove("active");
+      toggleBtn.style.zIndex = "";
+    }
+    document.body.style.overflow = "";
   } else {
     nav.classList.add("active");
     if (overlay) overlay.classList.add("active");
-    // أظهر hint فقط إذا كان عدد العناصر أكثر من 4
-    const items = nav.querySelectorAll(".nav-item");
-    if (hint && items.length > 4) hint.classList.add("active");
-
-    // أخفِ hint عند الـ scroll لآخر القائمة
-    nav.addEventListener("scroll", function onNavScroll() {
-      if (!hint) return;
-      const atBottom = nav.scrollTop + nav.clientHeight >= nav.scrollHeight - 4;
-      hint.classList.toggle("active", !atBottom);
-      if (atBottom) nav.removeEventListener("scroll", onNavScroll);
-    });
-  }
-
-  if (window.innerWidth > 768) {
-    nav.style.cssText = "";
-    if (overlay) overlay.classList.remove("active");
-    if (hint)    hint.classList.remove("active");
+    if (toggleBtn) {
+      toggleBtn.classList.add("active");
+      toggleBtn.style.zIndex = "10001";
+    }
+    document.body.style.overflow = "hidden";
   }
 }
 window.toggleMenu = toggleMenu;
 
 function closeNav() {
-  const nav     = document.getElementById("top_nav");
+  const nav = document.getElementById("top_nav");
   const overlay = document.getElementById("nav_overlay");
-  const hint    = document.getElementById("nav_hint");
-  if (nav)     nav.classList.remove("active");
+  const toggleBtn = document.querySelector(".menu-toggle");
+  if (nav) nav.classList.remove("active");
   if (overlay) overlay.classList.remove("active");
-  if (hint)    hint.classList.remove("active");
+  if (toggleBtn) {
+    toggleBtn.classList.remove("active");
+    toggleBtn.style.zIndex = "";
+  }
+  document.body.style.overflow = "";
 }
 window.closeNav = closeNav;
 
@@ -1915,28 +1945,127 @@ window.addEventListener("resize", function () {
 });
 // دالة لإعادة تعيين أنماط القائمة عند تغيير حجم الشاشة
 function getLessonStatus(n) {
+  const totalWords = (typeof W !== "undefined" && W.length > 0) ? W.length : 500;
+  const totalLessons = (typeof TOPICS !== "undefined" && (TOPICS || []).length > 0) ? (TOPICS || []).length : 15;
   const learned = learnedWords.size;
-  const wordsPerLesson = Math.ceil(500 / 15);
+  const wordsPerLesson = Math.ceil(totalWords / totalLessons);
   if (learned >= n * wordsPerLesson) return "completed";
   if (n === 1 || learned >= (n - 1) * wordsPerLesson) return "unlocked";
   return "locked";
 }
 
+function loadLevel(level) {
+  currentLevel = level;
+  const isEn = currentLang === "en";
+  const mainArea = document.getElementById("main_area");
+  if (mainArea) {
+    mainArea.innerHTML = `<div style="padding:4rem;text-align:center;">
+      <h2>${isEn ? "Loading HSK " : "جارٍ تحميل HSK "}${level}...</h2>
+      <p style="opacity:.5">${isEn ? "Fetching data files..." : "جاري تحميل البيانات..."}</p>
+    </div>`;
+  }
+
+  // Helper: fetch + parse with clear error messages
+  function fetchJSON(url) {
+    return fetch(url).then(r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
+      return r.json();
+    });
+  }
+
+  const base = `data/hsk${level}/`;
+  Promise.all([
+    fetchJSON(base + "vocab.json"),
+    fetchJSON(base + "sentences.json"),
+    fetchJSON(base + "lessons.json"),
+    fetchJSON(base + "dialogues.json"),
+    fetchJSON(base + "grammar.json"),
+    fetchJSON(base + "tests.json")
+  ]).then(([v, s, l, d, g, t]) => {
+    window.W = W = v.W || v || [];
+    window.SENTS = SENTS = s.SENTS || s || {};
+    window.TOPICS = TOPICS = l.TOPICS || [];
+    window.STORIES = STORIES = l.STORIES || [];
+    window.pinyinExamples = pinyinExamples = l.pinyinExamples || {};
+    window.DIALOGUES = DIALOGUES = d.DIALOGUES || d || {};
+    window.GRAMMAR = GRAMMAR = g.GRAMMAR || [];
+    window.BIGEXAM = BIGEXAM = t.BIGEXAM || [];
+    console.log("[HSK" + level + "] Data loaded OK: " + W.length + " words, " + (TOPICS || []).length + " topics, " + (GRAMMAR || []).length + " grammar");
+    try {
+      initLevelUI();
+    } catch (renderErr) {
+      console.error("[HSK" + level + "] Render error (non-fatal):", renderErr);
+      // Data loaded fine — try to show at least the dashboard
+      const m = document.getElementById("main_area");
+      if (m) m.innerHTML = '<div style="padding:2rem;text-align:center;"><h2>HSK ' + level + '</h2><p>تم تحميل ' + W.length + ' كلمة</p><p style="color:#c0392b;font-size:.85rem;">تنبيه في العرض: ' + renderErr.message + '</p></div>';
+    }
+  }).catch(err => {
+    console.error(`[HSK${level}] Fetch error:`, err);
+    currentLevel = null;
+    if (mainArea) {
+      mainArea.innerHTML = `<div style="padding:3rem;text-align:center;">
+        <h2 style="color:#c0392b;">${isEn ? "Failed to load HSK " + level : "عذراً، حدث خطأ في عرض المحتوى HSK " + level}</h2>
+        <p style="opacity:.7">${isEn ? "Error: " : "خطأ: "}${(err.message || 'Error occurred')}</p>
+        <p style="opacity:.5;font-size:.85rem;">${isEn ? "Make sure you are running a local server (e.g. Live Server on port 5500)" : "تأكد من تشغيل خادم محلي (مثل Live Server على المنفذ 5500)"}</p>
+        <button class="btn-primary" onclick="initApp()" style="margin-top:1rem;">${isEn ? "Back to Home" : "العودة للرئيسية"}</button>
+      </div>`;
+    }
+  });
+}
+
+
+function initLevelUI() {
+  buildNav();
+  buildContentFrames();
+  updateProgressBar();
+  showTab("dashboard");
+}
+
 function renderHome() {
   const isEn = currentLang === "en";
-  const pct = Math.round((learnedWords.size / 500) * 100);
-  const lessons = Array.from({ length: 15 }, (_, i) => i + 1);
-  const wordsPerLesson = Math.ceil(500 / 15);
+  return `
+    <div style="text-align:center; padding: 2rem 1rem;">
+       <h1 class="hero-title">${isEn ? "Select Your Level" : "اختر المستوى"}</h1>
+       <p class="hero-desc" style="margin-bottom: 2rem;">${isEn ? "Where would you like to start?" : "من أين تود أن تبدأ؟"}</p>
+       
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:1.5rem; max-width:1000px; margin:0 auto; padding:0 1rem;">
+          <div class="level-card" onclick="loadLevel(1)">
+             <div class="level-badge hsk1-badge">1</div>
+             <h2 class="level-title hsk1-title">HSK 1</h2>
+             <p class="level-desc">${isEn ? "Beginner (500 Words) 🐼" : "مبتدئ (500 كلمة) 🐼"}</p>
+          </div>
+          <div class="level-card" onclick="loadLevel(2)">
+             <div class="level-badge hsk2-badge">2</div>
+             <h2 class="level-title hsk2-title">HSK 2</h2>
+             <p class="level-desc">${isEn ? "Elementary ✨" : "ابتدائي ✨"}</p>
+          </div>
+          <div class="level-card" onclick="loadLevel(3)">
+             <div class="level-badge hsk3-badge">3</div>
+             <h2 class="level-title hsk3-title">HSK 3</h2>
+             <p class="level-desc">${isEn ? "Intermediate 🐉" : "متوسط 🐉"}</p>
+          </div>
+        </div>
+    </div>
+  `;
+}
+
+function renderDashboard() {
+  const isEn = currentLang === "en";
+  const totalWords = (typeof W !== "undefined" && W.length > 0) ? W.length : 500;
+  const totalLessons = (typeof TOPICS !== "undefined" && (TOPICS || []).length > 0) ? (TOPICS || []).length : 15;
+  const pct = totalWords === 0 ? 0 : Math.round((learnedWords.size / totalWords) * 100);
+  const lessons = Array.from({ length: totalLessons }, (_, i) => i + 1);
+  const wordsPerLesson = Math.ceil(totalWords / totalLessons);
   return `
     <div class="page-wrap">
       <section class="home-hero">
         <div>
-          <div class="badge">${isEn ? "HSK1 Arabic-First" : "HSK1 للناطقين بالعربية"}</div>
+          <div class="badge">${isEn ? `HSK${currentLevel} Arabic-First` : `HSK${currentLevel} للناطقين بالعربية`}</div>
           <h1 class="hero-title" id="hero-title">${isEn ? "Learn Chinese with Arabic" : "تعلم الصينية بالعربية"}</h1>
-          <div class="hero-subtitle" id="hero-subtitle">${isEn ? "Interactive HSK1 Learning Platform" : "منصة تعلم HSK1 التفاعلية"}</div>
+          <div class="hero-subtitle" id="hero-subtitle">${isEn ? `Interactive HSK${currentLevel} Learning Platform` : `منصة تعلم HSK${currentLevel} التفاعلية`}</div>
           <p class="hero-desc" id="hero-desc">${isEn ? "A clean, structured path for beginners with clear cards, audio, and smart practice." : "مسار واضح للمبتدئين مع بطاقات منظمة وصوت وتمارين ذكية."}</p>
           <div class="hero-actions">
-            <button class="btn-primary" onclick="showTab('lessons')">${isEn ? "Start Learning" : "ابدأ التعلم"}</button>
+            <button class="btn-primary ${userProgress.stats.xp === 0 ? "pulse-btn" : ""}" onclick="showTab('lessons')">${isEn ? "Start Learning" : "ابدأ التعلم"}</button>
             <button class="btn-ghost" onclick="showTab('vocab')">${isEn ? "Explore Lessons" : "استكشف الدروس"}</button>
           </div>
           <div class="hero-progress">
@@ -2041,7 +2170,7 @@ function renderHome() {
 
 function renderLessonDetail(n) {
   const isEn = currentLang === "en";
-  const words = W.filter((w) => w[4] === n).slice(0, 6);
+  const words = (W || []).filter((w) => w[4] === n).slice(0, 6);
   const sents = (SENTS[n] || []).slice(0, 2);
   const dialogs = renderDialogue(n);
   return `
@@ -2073,7 +2202,7 @@ function renderLessonDetail(n) {
         .map(
           (s) => `
         <div class="sent">
-          <div class="sent-zh" onclick="playAudio('${s[0].replace(/'/g, "\\'")}')" style="cursor:pointer;">${s[0]}</div>
+          <div class="sent-zh" onclick="playAudio('${(s[0] || '').replace(/'/g, "\\'")}')" style="cursor:pointer;">${s[0]}</div>
           <div class="sent-py py" style="display:${showPinyin ? "block" : "none"}">${formatPinyin(s[1])}</div>
           <div class="sent-ar">${s[2]}</div>
         </div>
@@ -2100,7 +2229,11 @@ function renderLessonDetail(n) {
 
 function renderLessons() {
   const isEn = currentLang === "en";
-  const lessons = Array.from({ length: 15 }, (_, i) => i + 1);
+  if (!TOPICS || !(TOPICS || []).length) {
+    return `<div style="padding:3rem;text-align:center;opacity:.6;">
+      <p>${isEn ? 'Please select a level first.' : 'اختر المستوى أولاً.'}</p></div>`;
+  }
+  const lessons = Array.from({ length: (TOPICS || []).length }, (_, i) => i + 1);
   return `
     <div class="page-wrap">
       <div class="lesson-layout">
@@ -2110,7 +2243,7 @@ function renderLessons() {
             .map(
               (n) => `
             <button class="lesson-item ${currentLesson === n ? "active" : ""}" onclick="selectLesson(${n})">
-              ${isEn ? "Lesson" : "درس"} ${n}: ${isEn ? TOPICS[n - 1].s : TOPICS[n - 1].t}
+              ${isEn ? "Lesson" : "درس"} ${n}: ${(isEn ? (TOPICS[n-1] && TOPICS[n-1].s) : (TOPICS[n-1] && TOPICS[n-1].t)) || n}
             </button>
           `,
             )
@@ -2201,9 +2334,9 @@ function renderDialogue(n) {
   if (!dialogs.length)
     return '<p class="no-dialog">لا يوجد حوار لهذا الدرس.</p>';
   let html = "";
-  dialogs.forEach((d) => {
-    html += `<div class="dialog-box"><h4 class="dialog-title">${d.title}</h4>`;
-    d.lines.forEach((l) => {
+  (dialogs || []).forEach((d) => {
+    html += `<div class="dialog-box"><h4 class="dialog-title">${d.title || ""}</h4>`;
+    (d.lines || []).forEach((l) => {
       html += `<div class="dialog-line spk-line-${l.sp}">
         <span class="spk-badge spk-${l.sp}">${d.speakers[l.sp].split(" ")[0]}</span>
         <div class="line-content">
@@ -2211,7 +2344,7 @@ function renderDialogue(n) {
           <div class="line-py py" style="display:${showPinyin ? "block" : "none"}">${formatPinyin(l.py)}</div>
           <div class="line-ar">${l.ar}</div>
           <div style="margin-top:0.4rem;">
-            <button class="icon-btn primary" onclick="playAudio('${l.zh.replace(/'/g, "\\'")}')">استمع</button>
+            <button class="icon-btn primary" onclick="playAudio('${(l.zh || '').replace(/'/g, "\\'")}')">استمع</button>
           </div>
         </div>
       </div>`;
@@ -2222,7 +2355,7 @@ function renderDialogue(n) {
 }
 
 function generateDynamicQuiz(topicNum) {
-  const words = W.filter((w) => w[4] === topicNum);
+  const words = (W || []).filter((w) => w[4] === topicNum);
   if (words.length === 0) return [];
   const questions = [];
   const shuffled = [...words].sort(() => Math.random() - 0.5);
@@ -2304,20 +2437,19 @@ function renderQuestion(cid) {
   const pct = Math.round((state.idx / state.total) * 100);
   let html = `<div class="quiz-header">
     <span class="quiz-prog">${state.idx + 1} / ${state.total}</span>
-    <button class="py-toggle" onclick="togglePinyin()">${showPinyin ? "إخفاء Pinyin" : "إظهار Pinyin"}</button>
     <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
   </div>
   <div class="quiz-q">
     <p class="q-text">${q.q}</p>
     ${q.zh ? `<div class="q-zh">${zhSpan(q.zh, q.py || "")}</div>` : ""}
-    ${q.listen ? `<button class="icon-btn primary" onclick="playAudio('${q.zh.replace(/'/g, "\\'")}')">استمع</button>` : ""}
+    ${q.listen ? `<button class="icon-btn primary" onclick="playAudio('${(q.zh || '').replace(/'/g, "\\'")}')">استمع</button>` : ""}
   </div>
   <div class="opts" id="${cid}_opts">`;
 
-  q.opts.forEach((o, i) => {
+  (q.opts || []).forEach((o, i) => {
     let optHtml = o;
     if (/[\u4e00-\u9fa5]/.test(o)) {
-      const found = W.find((w) => w[0] === o);
+      const found = (W || []).find((w) => w[0] === o);
       if (found) {
         optHtml =
           o +
@@ -2353,6 +2485,10 @@ function findExamplesForWord(hanzi, limit = 3) {
 }
 
 function renderVocabPage() {
+  if (!W || !W.length) {
+    const isEn = currentLang === "en";
+    return `<div style="padding:2rem;text-align:center;opacity:.6"><p>${isEn ? "No vocabulary available." : "لا توجد مفردات."}</p></div>`;
+  }
   const isEn = currentLang === "en";
   const total = W.length;
   const learned = learnedWords.size;
@@ -2376,6 +2512,7 @@ function renderVocabPage() {
 }
 
 function updateVocabCounts() {
+  if (!W || !W.length) return;
   const total = W.length;
   const learned = learnedWords.size;
   const newCount = total - learned;
@@ -2479,6 +2616,10 @@ function showWordExamples(word) {
 window.showWordExamples = showWordExamples;
 
 function renderFlashcardsPage() {
+  if (!W || !W.length) {
+    const isEn = currentLang === "en";
+    return `<div style="padding:2rem;text-align:center;opacity:.6"><p>${isEn ? "No flashcards available." : "لا توجد بطاقات."}</p></div>`;
+  }
   const isEn = currentLang === "en";
   return `
     <div class="page-wrap">
@@ -2707,6 +2848,10 @@ function getDueReviewWords() {
 }
 
 function renderReviewPage() {
+  if (!W || !W.length) {
+    const isEn = currentLang === "en";
+    return `<div style="padding:2rem;text-align:center;opacity:.6"><p>${isEn ? "No review items." : "لا توجد عناصر مراجعة."}</p></div>`;
+  }
   const isEn = currentLang === "en";
   const due = getDueReviewWords(); // الكلمات المستحقة الآن
   const list = due.length ? due : reviewList; // إذا لم يوجد مستحق، اعرض الكل (أو عدل حسب رغبتك)
@@ -2778,6 +2923,10 @@ function renderReviewPage() {
 }
 
 function renderDialogsPage() {
+  if (!DIALOGUES || !Object.keys(DIALOGUES).length) {
+    const isEn = currentLang === "en";
+    return `<div style="padding:2rem;text-align:center;opacity:.6"><p>${isEn ? "No dialogues available." : "لا توجد حوارات."}</p></div>`;
+  }
   const isEn = currentLang === "en";
   const topics = Array.from({ length: 15 }, (_, i) => i + 1);
 
@@ -2807,7 +2956,7 @@ function renderDialogsPage() {
           ${topics
             .map((n) => {
               const isCollapsed = window.dialogCollapsedState[n];
-              const topicTitle = TOPICS.find((t) => t.n === n)?.t || `درس ${n}`;
+              const topicTitle = (TOPICS || []).find((t) => t.n === n)?.t || `درس ${n}`;
 
               return `
               <div class="dialog-section" id="dialog-section-${n}">
@@ -2978,12 +3127,20 @@ function markDialogCompleted(lesson) {
 window.markDialogCompleted = markDialogCompleted;
 
 function renderProgress() {
+  if (!W || !W.length || !TOPICS || !(TOPICS || []).length) {
+    const isEn = currentLang === "en";
+    return `<div style="padding:2rem;text-align:center;opacity:.6"><p>${isEn ? "Select a level to view progress." : "اختر مستوى لعرض التقدم."}</p></div>`;
+  }
   const isEn = currentLang === "en";
-  const pct = Math.round((learnedWords.size / 500) * 100);
+  const totalWords = (typeof W !== "undefined" && W.length > 0) ? W.length : 500;
+  const totalLessons = (typeof TOPICS !== "undefined" && (TOPICS || []).length > 0) ? (TOPICS || []).length : 15;
+  const pct = totalWords === 0 ? 0 : Math.round((learnedWords.size / totalWords) * 100);
+  const wordsPerL = totalLessons === 0 ? 0 : Math.ceil(totalWords / totalLessons);
+  const lessonsCompleted = wordsPerL === 0 ? 0 : Math.min(totalLessons, Math.floor(learnedWords.size / wordsPerL));
   return `
     <div class="page-wrap">
       <div class="card">
-        <div class="section-title">${isEn ? "HSK1 Progress" : "تقدم HSK1"}</div>
+        <div class="section-title">${isEn ? `HSK${currentLevel} Progress` : `تقدم HSK${currentLevel}`}</div>
         <div class="progress-track-modern">
           <div class="progress-fill-modern" id="progress_bar" style="width:${pct}%"></div>
         </div>
@@ -2995,7 +3152,7 @@ function renderProgress() {
           </div>
           <div class="stat-card">
             <div style="font-size:0.8rem;color:#777;">${isEn ? "Lessons Completed" : "الدروس المكتملة"}</div>
-            <div id="progress_lessons" style="font-size:1.6rem;font-weight:800;color:var(--primary);">${Math.min(15, Math.floor(learnedWords.size / Math.ceil(500 / 15)))}</div>
+            <div id="progress_lessons" style="font-size:1.6rem;font-weight:800;color:var(--primary);">${lessonsCompleted}</div>
           </div>
           <div class="stat-card">
             <div style="font-size:0.8rem;color:#777;">${isEn ? "Quizzes Passed" : "الاختبارات المجتازة"}</div>
@@ -3016,6 +3173,7 @@ function renderProgress() {
 }
 
 function renderProfile() {
+  if (!W) W = [];
   const isEn = currentLang === "en";
   return `
     <div class="page-wrap">
@@ -3041,33 +3199,45 @@ function buildContentFrames() {
   const mainArea = document.getElementById("main_area");
   if (!mainArea) return;
   let html = "";
+  // Always render the home screen
   html += `<div id="sec-home" class="sec active">${renderHome()}</div>`;
-  html += `<div id="sec-pinyin" class="sec">${renderPinyinPage()}</div>`;
-  html += `<div id="sec-lessons" class="sec">${renderLessons()}</div>`;
-  html += `<div id="sec-vocab" class="sec">${renderVocabPage()}</div>`;
-  html += `<div id="sec-grammar" class="sec">${renderGrammar()}</div>`;
-  html += `<div id="sec-dialogs" class="sec">${renderDialogsPage()}</div>`;
-  html += `<div id="sec-stories" class="sec">${renderStoriesPage()}</div>`;
-  html += `<div id="sec-flashcards" class="sec">${renderFlashcardsPage()}</div>`;
-  html += `<div id="sec-tests" class="sec">${renderBigExam()}</div>`;
-  html += `<div id="sec-review" class="sec">${renderReviewPage()}</div>`;
-  html += `<div id="sec-progress" class="sec">${renderProgress()}</div>`;
-  html += `<div id="sec-profile" class="sec">${renderProfile()}</div>`;
-  html += `<div id="sec-translator" class="sec">${renderSmartTranslator()}</div>`;
 
-  for (let i = 1; i <= 15; i++) {
-    html += `<div id="sec-t${i}" class="sec">${renderTopic(i)}</div>`;
+  // Only render level content sections if a level is loaded
+  if (currentLevel) {
+    html += `<div id="sec-dashboard" class="sec">${typeof renderDashboard === "function" ? renderDashboard() : ""}</div>`;
+    html += `<div id="sec-pinyin" class="sec">${renderPinyinPage()}</div>`;
+    html += `<div id="sec-lessons" class="sec">${renderLessons()}</div>`;
+    html += `<div id="sec-vocab" class="sec">${renderVocabPage()}</div>`;
+    html += `<div id="sec-grammar" class="sec">${renderGrammar()}</div>`;
+    html += `<div id="sec-dialogs" class="sec">${renderDialogsPage()}</div>`;
+    html += `<div id="sec-stories" class="sec">${renderStoriesPage()}</div>`;
+    html += `<div id="sec-flashcards" class="sec">${renderFlashcardsPage()}</div>`;
+    html += `<div id="sec-tests" class="sec">${renderBigExam()}</div>`;
+    html += `<div id="sec-review" class="sec">${renderReviewPage()}</div>`;
+    html += `<div id="sec-progress" class="sec">${renderProgress()}</div>`;
+    html += `<div id="sec-profile" class="sec">${renderProfile()}</div>`;
+    html += `<div id="sec-translator" class="sec">${renderSmartTranslator()}</div>`;
+
+    const totalLessons = (TOPICS || []).length || 15;
+    for (let i = 1; i <= totalLessons; i++) {
+      html += `<div id="sec-t${i}" class="sec">${renderTopic(i)}</div>`;
+    }
   }
+
   mainArea.innerHTML = html;
 }
 
 function updateProgressBar() {
-  const pct = Math.round((learnedWords.size / 500) * 100);
-  const wordsPerLesson = Math.ceil(500 / 15);
-  for (let i = 1; i <= 15; i++) {
+  const totalWords = (typeof W !== "undefined" && W.length > 0) ? W.length : 500;
+  const totalLessons = (typeof TOPICS !== "undefined" && (TOPICS || []).length > 0) ? (TOPICS || []).length : 15;
+  const pct = totalWords === 0 ? 0 : Math.round((learnedWords.size / totalWords) * 100);
+  const wordsPerLesson = totalLessons === 0 ? 0 : Math.ceil(totalWords / totalLessons);
+  
+  for (let i = 1; i <= totalLessons; i++) {
     if (
+      wordsPerLesson > 0 &&
       learnedWords.size >= i * wordsPerLesson &&
-      !userProgress.stats.completedLessons.includes(i)
+      !(userProgress.stats.completedLessons || []).includes(i)
     ) {
       userProgress.stats.completedLessons.push(i);
       addXP(20);
@@ -3109,7 +3279,7 @@ function toggleLang() {
   const brandTitle = document.getElementById("brand-title");
   if (brandTitle)
     brandTitle.innerText =
-      currentLang === "ar" ? "تعلم الصينية" : "Learn Chinese";
+      currentLang === "ar" ? "تعلم الصينية 🐼" : "Learn Chinese 🐼";
   buildNav();
   buildContentFrames();
   updateStatsUI();

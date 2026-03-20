@@ -18,10 +18,15 @@
 }
 
 body {
-  font-family: 'Cairo', sans-serif;
-  background: var(--rice);
-  color: var(--ink);
-  min-height: 100vh;
+  font-family: 'Inter', 'Cairo', 'Noto Sans SC', sans-serif;
+  background-color: var(--bg);
+  background-image: radial-gradient(rgba(198, 40, 40, 0.04) 2px, transparent 2px);
+  background-size: 30px 30px;
+  color: var(--text);
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  transition: background 0.3s, color 0.3s;
 }
 
 /* ========== الهيدر ========== */
@@ -236,16 +241,14 @@ body {
 
   #app {
     flex-direction: column;
-    height: 100dvh;
-    overflow: hidden;
+    /* Removed height constraint off mobile */
+    min-height: 100vh;
   }
 
   #content {
     flex: 1;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    /* Removed fixed scroll constraint to allow natural body scroll */
     min-height: 0;
-    /* ضروري لـ flexbox scroll */
   }
 
   #main_nav {
@@ -3062,7 +3065,15 @@ body {
   z-index: 999;
   background: rgba(250, 250, 250, 0.9);
   border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(12px);
+  backdrop-filter: visible;
+}
+
+header-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(14px);
+  z-index: -1;
 }
 
 .topbar-inner {
@@ -3193,6 +3204,20 @@ body {
   height: 2px;
   background: var(--text);
   margin: 4px auto;
+  transition: all 0.3s ease;
+  transform-origin: center;
+}
+
+.menu-toggle.active span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.menu-toggle.active span:nth-child(2) {
+  opacity: 0;
+}
+
+.menu-toggle.active span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
 }
 
 .page-wrap {
@@ -4078,7 +4103,7 @@ body.dark .panda-msg {
 
 /* ========== CSS Variable لارتفاع الـ topbar ========== */
 :root {
-  --topbar-h: -50px;
+  --topbar-h: 64px;
 }
 
 /* ========== Overlay خلف القائمة ========== */
@@ -4129,83 +4154,79 @@ body.dark .nav-scroll-hint {
     place-items: center;
   }
 
-  /* القائمة مخفية بالكامل عند الإغلاق */
+  /* القائمة منزلقة من اليمين (Full-Screen Drawer) */
   .topnav {
-    display: none !important;
-    pointer-events: none !important;
-    /* إعادة تعيين كل خصائص الـ base style */
-    gap: 0 !important;
-    flex-wrap: nowrap !important;
-    align-items: stretch !important;
-    justify-content: flex-start !important;
-  }
-
-  /* القائمة عند الفتح — 4 عناصر ثم scroll */
-  .topnav.active {
-    display: block !important;
-    /* block وليس flex — يمنع تسرب gap */
-    pointer-events: auto !important;
     position: fixed !important;
-    top: var(--topbar-h) !important;
-    left: 0 !important;
+    top: 0 !important;
     right: 0 !important;
-    height: auto !important;
-    max-height: 208px !important;
-    /* 4 × 52px بالضبط */
-    min-height: 0 !important;
-    overflow-y: scroll !important;
-    /* scroll دائماً (أفضل لـ iOS) */
+    bottom: 0 !important;
+    width: 100% !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    background: var(--bg) !important;
+    z-index: 10000 !important;
+    transform: translateX(100%) !important;
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), visibility 0.4s !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    box-sizing: border-box !important;
+    padding: 80px 20px 80px !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    overflow-y: auto !important;
     overflow-x: hidden !important;
     -webkit-overflow-scrolling: touch !important;
     overscroll-behavior: contain !important;
-    background: #fff !important;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18) !important;
-    z-index: 9998 !important;
-    border-radius: 0 0 14px 14px !important;
-    border-bottom: 3px solid #c0392b !important;
-    padding: 0 !important;
-    margin: 0 !important;
+    gap: 10px !important;
+    align-items: center !important;
   }
 
-  /* كل عنصر في القائمة — ارتفاع ثابت 52px */
+  /* القائمة عند الفتح */
+  .topnav.active {
+    pointer-events: auto !important;
+    visibility: visible !important;
+    transform: translateX(0) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+  }
+
+  /* كل عنصر في القائمة — عناصر كبيرة وشيك */
   .topnav .nav-item {
     display: flex !important;
     align-items: center !important;
-    justify-content: flex-end !important;
-    width: 100% !important;
+    justify-content: center !important;
     box-sizing: border-box !important;
-    height: 52px !important;
-    min-height: 52px !important;
-    max-height: 52px !important;
+    width: 100% !important;
+    max-width: 400px !important;
+    flex-shrink: 0 !important;
+    height: 60px !important;
     padding: 0 20px !important;
     margin: 0 !important;
     border: none !important;
-    border-bottom: 1px solid #f0f0f0 !important;
-    border-radius: 0 !important;
-    font-size: 0.95rem !important;
-    font-family: 'Cairo', sans-serif !important;
-    background: #fff !important;
-    color: #222 !important;
-    white-space: nowrap !important;
+    border-radius: 16px !important;
+    font-size: 1.2rem !important;
+    font-weight: 500 !important;
+    background: transparent !important;
+    color: var(--text) !important;
     cursor: pointer !important;
-    transition: background 0.1s !important;
-    gap: 8px !important;
-    flex-shrink: 0 !important;
-  }
-
-  .topnav .nav-item:last-child {
-    border-bottom: none !important;
+    transition: all 0.2s ease !important;
+    gap: 15px !important;
   }
 
   .topnav .nav-item:active {
-    background: #fdf0f0 !important;
+    background: var(--sh) !important;
+    transform: scale(0.98) !important;
   }
 
   .topnav .nav-item.active {
-    background: #fef5f5 !important;
-    color: #c0392b !important;
+    background: var(--sh) !important;
+    color: var(--r) !important;
     font-weight: 700 !important;
-    border-right: 3px solid #c0392b !important;
   }
 
   /* شريط التمرير */
@@ -4220,23 +4241,7 @@ body.dark .nav-scroll-hint {
 
   /* Dark mode */
   body.dark .topnav.active {
-    background: #1a1a2e !important;
-  }
-
-  body.dark .topnav .nav-item {
-    background: #1a1a2e !important;
-    color: #f2f2f2 !important;
-    border-bottom-color: #2d2d44 !important;
-  }
-
-  body.dark .topnav .nav-item:active {
-    background: #2d2d44 !important;
-  }
-
-  body.dark .topnav .nav-item.active {
-    background: #2d2d44 !important;
-    color: #fff !important;
-    border-right-color: #c0392b !important;
+    background: #10121a !important;
   }
 }
 
@@ -4267,4 +4272,160 @@ body.dark .nav-scroll-hint {
   .nav-scroll-hint {
     display: none !important;
   }
+}
+
+/* ========== UX Improvements ========== */
+
+/* Floating Pinyin Toggle */
+#floating-py-toggle {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 15px rgba(198, 40, 40, 0.3);
+  font-size: 1.5rem;
+  z-index: 9997;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, background 0.2s;
+}
+#floating-py-toggle:active {
+  transform: scale(0.9);
+}
+#floating-py-toggle:hover {
+  background: #a93226;
+}
+
+/* Pulsing "Start Learning" Button */
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 0 0 rgba(198, 40, 40, 0.6); }
+  70% { box-shadow: 0 0 0 15px rgba(198, 40, 40, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(198, 40, 40, 0); }
+}
+.pulse-btn {
+  animation: pulseGlow 2s infinite !important;
+}
+
+/* Smooth Tab Transitions */
+@keyframes fadeInSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.sec {
+  display: none;
+}
+.sec.active {
+  display: block;
+  animation: fadeInSlideUp 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Vocabulary Review Buttons */
+.big-wc {
+  position: relative;
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 15px;
+}
+.bwc-content {
+  display: flex;
+  flex-direction: column;
+}
+.bwc-toggle-btn {
+  background: rgba(26, 26, 46, 0.05);
+  border: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.bwc-toggle-btn:hover {
+  background: var(--r);
+  color: #fff;
+  transform: scale(1.1);
+}
+.bwc-toggle-btn:active {
+  transform: scale(0.95);
+}
+body.dark .bwc-toggle-btn {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* ========== Level Dashboard Styles ========== */
+.level-card {
+  background: var(--bg);
+  border-radius: 16px;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+body.dark .level-card {
+  background: #252538;
+  border-color: rgba(255,255,255,0.05);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.level-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+body.dark .level-card:hover {
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+}
+
+.level-badge {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  color: #fff;
+}
+
+.hsk1-badge { background: linear-gradient(135deg, #c0392b, #e74c3c); }
+.hsk2-badge { background: linear-gradient(135deg, #2980b9, #3498db); }
+.hsk3-badge { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+
+.hsk1-title { color: #c0392b; font-size: 2rem; margin-bottom: 0.5rem; }
+.hsk2-title { color: #2980b9; font-size: 2rem; margin-bottom: 0.5rem; }
+.hsk3-title { color: #27ae60; font-size: 2rem; margin-bottom: 0.5rem; }
+
+body.dark .hsk1-title { color: #fe6e5e; }
+body.dark .hsk2-title { color: #5dade2; }
+body.dark .hsk3-title { color: #58d68d; }
+
+.level-desc {
+  color: #666;
+  font-size: 1.1rem;
+}
+body.dark .level-desc {
+  color: #aaa;
 }
