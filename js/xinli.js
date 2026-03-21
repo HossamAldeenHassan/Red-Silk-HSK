@@ -1,153 +1,126 @@
 /**
  * Red Silk HSK — Xīnlì AI Assistant (心力)
- * Netlify Serverless Function: /.netlify/functions/xinli
+ * Netlify Function: /.netlify/functions/xinli
  *
- * Secure proxy between the app and the Gemini API.
- * The GEMINI_API_KEY is read ONLY from Netlify environment variables.
- * It is never returned to the client, never logged, never embedded in HTML.
+ * Secure Gemini API proxy.
+ * GEMINI_API_KEY is read ONLY from Netlify environment variables.
+ * It never appears in any frontend code or response body.
  */
 
 exports.handler = async function (event) {
-  /* ── CORS headers (allow same-origin Netlify requests) ── */
-  const cors = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
+
+  const CORS = {
+    'Access-Control-Allow-Origin':  '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'X-Content-Type-Options': 'nosniff',
+    'Access-Control-Allow-Headers': 'Content-Type',
   };
 
-  /* Preflight */
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers: cors, body: '' };
+    return { statusCode: 204, headers: CORS, body: '' };
   }
 
-  /* Only allow POST */
   if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers: cors, body: JSON.stringify({ error: 'Method not allowed' }) };
+    return { statusCode: 405, headers: CORS, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  /* ── API key guard ── */
   const API_KEY = process.env.GEMINI_API_KEY;
   if (!API_KEY) {
-    console.error('[Xinli] GEMINI_API_KEY is not set in Netlify environment variables.');
+    console.error('[Xinli] GEMINI_API_KEY not set in Netlify environment variables.');
     return {
       statusCode: 500,
-      headers: cors,
-      body: JSON.stringify({ error: 'خطأ في إعداد المساعد. يرجى التواصل مع الدعم.' }),
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: 'خطأ في إعداد المساعد. يرجى التواصل مع الدعم الفني.' }),
     };
   }
 
-  /* ── Parse request ── */
   let body;
-  try {
-    body = JSON.parse(event.body || '{}');
-  } catch {
-    return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'طلب غير صالح' }) };
+  try { body = JSON.parse(event.body || '{}'); }
+  catch {
+    return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'طلب غير صالح' }) };
   }
 
   const { messages = [], context = {} } = body;
 
   if (!Array.isArray(messages) || messages.length === 0) {
-    return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'لا توجد رسائل' }) };
+    return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'لا توجد رسائل' }) };
   }
 
-  /* ── Build context block for the system prompt ── */
-  function buildContext(ctx) {
-    const TAB_NAMES = {
-      home:       'الصفحة الرئيسية',
-      vocab:      'صفحة المفردات',
-      grammar:    'صفحة القواعد',
-      sentences:  'صفحة الجمل والحوارات',
-      bigexam:    'صفحة الاختبار الشامل',
-      flashcards: 'صفحة البطاقات التعليمية',
-      stories:    'صفحة القصص',
-      tones:      'صفحة النغمات',
-      review:     'صفحة المراجعة',
-      translator: 'صفحة المترجم',
+  function buildCtx(ctx) {
+    const TAB = {
+      home: 'الصفحة الرئيسية', vocab: 'المفردات', grammar: 'القواعد',
+      sentences: 'الجمل والحوارات', bigexam: 'الاختبار الشامل',
+      flashcards: 'البطاقات التعليمية', stories: 'القصص',
+      tones: 'النغمات', review: 'المراجعة', translator: 'المترجم',
     };
-
     const lines = [];
-    if (ctx.tab)          lines.push(`الصفحة الحالية: ${TAB_NAMES[ctx.tab] || ctx.tab}`);
-    if (ctx.lesson)       lines.push(`الدرس الحالي: الدرس رقم ${ctx.lesson}`);
+    if (ctx.tab)          lines.push(`الصفحة: ${TAB[ctx.tab] || ctx.tab}`);
+    if (ctx.lesson)       lines.push(`الدرس رقم: ${ctx.lesson}`);
     if (ctx.lessonTopic)  lines.push(`موضوع الدرس: ${ctx.lessonTopic}`);
-    if (ctx.learnedCount) lines.push(`كلمات تعلّمها المستخدم: ${ctx.learnedCount} كلمة`);
-    if (ctx.xp)           lines.push(`نقاط XP للمستخدم: ${ctx.xp}`);
+    if (ctx.learnedCount) lines.push(`كلمات محفوظة: ${ctx.learnedCount}`);
+    if (ctx.xp)           lines.push(`نقاط XP: ${ctx.xp}`);
     if (ctx.lang)         lines.push(`لغة الواجهة: ${ctx.lang === 'ar' ? 'العربية' : 'English'}`);
-    if (ctx.visibleWords?.length) {
-      lines.push(`كلمات ظاهرة على الشاشة حالياً: ${ctx.visibleWords.slice(0, 12).join('، ')}`);
-    }
-    return lines.length ? lines.join('\n') : 'لا معلومات إضافية عن الصفحة الحالية';
+    if (Array.isArray(ctx.visibleWords) && ctx.visibleWords.length)
+      lines.push(`كلمات ظاهرة: ${ctx.visibleWords.slice(0, 10).join('، ')}`);
+    return lines.join('\n') || 'لا معلومات إضافية';
   }
 
-  /* ── System prompt — Xīnlì's identity ── */
-  const SYSTEM = `أنتِ "شينلي" (Xīnlì / 心力)، المساعدة الذكية الودودة لتطبيق Red Silk HSK.
+  const SYSTEM = `أنتِ شينلي (Xīnlì · 心力)، المساعدة الذكية لتطبيق Red Silk HSK.
 
-هويتك الكاملة:
-• اسمك شينلي Xīnlì (心力) — ويعني "قوة القلب والعقل"
-• فتاة بشخصية دافئة، حماسية، صبورة، وتُحبّ التعليم
-• تعيشين داخل تطبيق Red Silk HSK لتعليم اللغة الصينية للناطقين بالعربية
-• لا تُشيري أبداً إلى Gemini أو Google أو أي تقنية خارجية — أنتِ شينلي فقط، من داخل التطبيق
+هويتك:
+- اسمك شينلي Xīnlì — يعني "قوة القلب والعقل" (心力)
+- شخصيتك: دافئة، صبورة، حماسية، تُحبّ التعليم
+- تعيشين داخل تطبيق Red Silk HSK لتعليم الصينية للناطقين بالعربية
+- لا تذكري Gemini أو Google أو أي تقنية خارجية — أنتِ شينلي فقط
 
 مهامك:
-١. شرح المفردات الصينية: الحرف (汉字)، النطق (Pinyin)، المعنى بالعربية
-٢. تفسير قواعد اللغة الصينية بأسلوب بسيط مع أمثلة
-٣. تصحيح الأخطاء برفق وتشجيع
-٤. الإجابة على أسئلة المستخدم عن محتوى الصفحة الحالية
-٥. تقديم جمل توضيحية وطرق حفظ ممتعة
-٦. ربط الكلمات بالسياق اليومي والثقافة الصينية
+١. شرح المفردات: 汉字 (Pinyin) = المعنى بالعربية
+٢. تفسير القواعد النحوية بأمثلة
+٣. تصحيح الأخطاء برفق مع تشجيع
+٤. الإجابة عن أسئلة الدروس والمنهج
+٥. تقديم طرق حفظ ممتعة
+٦. ربط الكلمات بالثقافة الصينية
 
-أسلوب ردودك:
-• تكلّمي بالعربية دائماً كلغة أساسية
-• أضيفي الصينية (汉字 + Pinyin) عند شرح أي كلمة أو جملة
-• اجعلي ردودك مختصرة وواضحة ومفيدة — لا تطيلي دون حاجة
-• استخدمي التنسيق: 汉字 (Pinyin) = المعنى
-• كوني إيجابية ومشجّعة دائماً
-• إذا سُئلتِ عن شيء خارج نطاق الصينية أو التطبيق، أجيبي باختصار وأعيدي التوجيه للتعلم
-• لا تكتبي قوائم طويلة — الوضوح والبساطة أولاً
+قواعد الأسلوب:
+- العربية لغة أساسية، أضيفي الصينية عند الشرح
+- ردود مختصرة وواضحة — لا إطالة دون داعٍ
+- إيجابية ومشجّعة دائماً
+- لا تذكري أنكِ Gemini أو AI خارجي
 
-معلومات المنهج:
-• المستوى: HSK 1 (المستوى الأول الأساسي)
-• عدد الكلمات: 500 كلمة
-• عدد المواضيع: 15 موضوعاً
-• الجمهور: ناطقون بالعربية يتعلمون الصينية
+المنهج: HSK 1 — 500 كلمة · 15 موضوعاً — للناطقين بالعربية
 
-السياق الحالي:
-${buildContext(context)}
+السياق:
+${buildCtx(context)}
 
 ابدئي مباشرة بالإجابة المفيدة!`;
 
-  /* ── Convert messages to Gemini format ── */
-  // Gemini requires alternating user / model roles, starting with user
+  // Build Gemini contents — must alternate user/model, start with user
   const contents = [];
   for (const msg of messages) {
     if (!msg.content || !msg.role) continue;
-    contents.push({
-      role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: String(msg.content) }],
-    });
+    const role = msg.role === 'assistant' ? 'model' : 'user';
+    if (contents.length > 0 && contents[contents.length - 1].role === role) {
+      contents[contents.length - 1].parts[0].text += '\n' + String(msg.content);
+    } else {
+      contents.push({ role, parts: [{ text: String(msg.content) }] });
+    }
   }
 
-  if (contents.length === 0 || contents[0].role !== 'user') {
-    return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'تنسيق الرسائل غير صحيح' }) };
+  if (!contents.length || contents[0].role !== 'user') {
+    return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'تنسيق الرسائل غير صحيح' }) };
   }
 
-  /* ── Call Gemini ── */
-  const MODEL = 'gemini-2.0-flash';
-  const URL   = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
+  const GEMINI_URL =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + API_KEY;
 
-  let raw;
+  let rawRes;
   try {
-    raw = await fetch(URL, {
+    rawRes = await fetch(GEMINI_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         system_instruction: { parts: [{ text: SYSTEM }] },
         contents,
-        generationConfig: {
-          temperature:      0.75,
-          maxOutputTokens:  700,
-          topP:             0.92,
-        },
+        generationConfig: { temperature: 0.75, maxOutputTokens: 700, topP: 0.92 },
         safetySettings: [
           { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
           { category: 'HARM_CATEGORY_HATE_SPEECH',       threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
@@ -160,26 +133,29 @@ ${buildContext(context)}
     console.error('[Xinli] Network error:', netErr.message);
     return {
       statusCode: 502,
-      headers: cors,
-      body: JSON.stringify({ error: 'تعذّر الاتصال بالمساعد. يرجى المحاولة مجدداً.' }),
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: 'تعذّر الوصول إلى الخادم. يرجى المحاولة مجدداً.' }),
     };
   }
 
-  /* Handle non-200 from Gemini */
-  if (!raw.ok) {
-    const errText = await raw.text().catch(() => '');
-    console.error(`[Xinli] Gemini API ${raw.status}:`, errText.slice(0, 300));
-    const msg = raw.status === 429
-      ? 'شينلي مشغولة قليلاً! يرجى الانتظار ثانية ثم المحاولة. 😊'
-      : 'حدث خطأ مؤقت. يرجى المحاولة مجدداً.';
-    return { statusCode: raw.status, headers: cors, body: JSON.stringify({ error: msg }) };
+  if (!rawRes.ok) {
+    const errBody = await rawRes.text().catch(() => '');
+    console.error('[Xinli] Gemini error', rawRes.status, errBody.slice(0, 400));
+    const msg =
+      rawRes.status === 429 ? 'شينلي مشغولة قليلاً! انتظر ثانية ثم حاول مجدداً 😊' :
+      rawRes.status === 400 ? 'طلب غير صالح. يرجى تحديث الصفحة والمحاولة.' :
+      'حدث خطأ مؤقت. يرجى المحاولة مجدداً.';
+    return {
+      statusCode: rawRes.status >= 500 ? 502 : rawRes.status,
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: msg }),
+    };
   }
 
-  /* Parse response */
   let data;
-  try { data = await raw.json(); }
+  try { data = await rawRes.json(); }
   catch {
-    return { statusCode: 502, headers: cors, body: JSON.stringify({ error: 'استجابة غير متوقعة.' }) };
+    return { statusCode: 502, headers: CORS, body: JSON.stringify({ error: 'استجابة غير متوقعة.' }) };
   }
 
   const reply =
@@ -188,7 +164,7 @@ ${buildContext(context)}
 
   return {
     statusCode: 200,
-    headers: { ...cors, 'Content-Type': 'application/json; charset=utf-8' },
+    headers: { ...CORS, 'Content-Type': 'application/json; charset=utf-8' },
     body: JSON.stringify({ reply }),
   };
 };

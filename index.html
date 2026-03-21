@@ -1,1049 +1,696 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
-  <title>Red Silk HSK | تعلّم الصينية</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Red Silk HSK | تعلم الصينية — المستوى الأول</title>
+
+  <!-- Google Fonts — Brand Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@300;400;500;600;700;900&family=Noto+Serif+SC:wght@400;700&family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Cairo:wght@300;400;600;700;900&family=Noto+Sans+SC:wght@300;400;700&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
 
-<!-- ================================================================
-     JS ERROR OVERLAY
-================================================================ -->
-<script>
-window.onerror = function(msg, src, line, col) {
-  const d = document.createElement('div');
-  d.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:#C0392B;color:#fff;padding:14px 18px;z-index:999999;font-size:13px;direction:ltr;font-family:monospace;line-height:1.5;';
-  d.innerHTML = '<b>JS Error:</b> ' + msg + ' — ' + src + ':' + line;
-  document.body.appendChild(d);
-};
-</script>
+  <!-- ======================================================
+       JS ERROR OVERLAY (dev helper)
+  ======================================================= -->
+  <script>
+    window.onerror = function (message, source, lineno, colno, error) {
+      const errDiv = document.createElement('div');
+      errDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:#C0392B;color:white;padding:18px;z-index:999999;font-size:15px;direction:ltr;text-align:left;font-family:monospace;line-height:1.5;';
+      errDiv.innerHTML = '<b>JS Error:</b> ' + message + '<br><b>File:</b> ' + source + ':' + lineno + ':' + colno;
+      document.body.appendChild(errDiv);
+    };
+  </script>
 
-<!-- ================================================================
-     SPLASH SCREEN
-================================================================ -->
-<div id="splash">
-  <div class="splash-pattern"></div>
-  <div class="splash-circles"></div>
+  <!-- ======================================================
+       SPLASH SCREEN — Red Silk HSK
+  ======================================================= -->
+  <div id="splash">
+    <div class="splash-circles"></div>
 
-  <!-- Xinlì full body mascot -->
-  <div class="splash-mascot">
-    <svg width="150" height="180" viewBox="60 80 280 330" xmlns="http://www.w3.org/2000/svg">
-      <!-- Body / robe -->
-      <ellipse cx="200" cy="370" rx="58" ry="72" fill="#a93226"/>
-      <!-- Robe fold detail -->
-      <path d="M178 320 Q195 360 188 400" fill="none" stroke="#e74c3c" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
-      <!-- Collar -->
-      <ellipse cx="200" cy="310" rx="26" ry="14" fill="#f5f0eb"/>
-      <rect x="188" y="295" width="24" height="26" rx="8" fill="#F4C5A0"/>
-      <!-- Head skin -->
-      <ellipse cx="200" cy="262" rx="56" ry="62" fill="#F4C5A0"/>
-      <!-- Hair base -->
-      <ellipse cx="200" cy="222" rx="58" ry="36" fill="#1a1010"/>
-      <!-- Hair sides -->
-      <rect x="142" y="220" width="20" height="90" rx="10" fill="#1a1010"/>
-      <rect x="238" y="220" width="20" height="90" rx="10" fill="#1a1010"/>
-      <!-- Red ribbon in hair -->
-      <rect x="144" y="222" width="6" height="75" rx="3" fill="#C0392B" opacity="0.80"/>
-      <!-- Hair top -->
-      <ellipse cx="200" cy="228" rx="56" ry="22" fill="#1a1010"/>
-      <!-- Ear wisps -->
-      <path d="M154 236 Q168 262 176 255" fill="#1a1010"/>
-      <path d="M246 236 Q232 262 224 255" fill="#1a1010"/>
-      <!-- Red hair ornament -->
-      <circle cx="238" cy="228" r="9" fill="#C0392B"/>
-      <circle cx="238" cy="228" r="5" fill="#e74c3c"/>
-      <line x1="238" y1="237" x2="236" y2="256" stroke="#C0392B" stroke-width="2" stroke-linecap="round"/>
-      <!-- Eyebrows -->
-      <path d="M171 238 Q182 232 193 237" fill="none" stroke="#2c1010" stroke-width="2.8" stroke-linecap="round"/>
-      <path d="M207 237 Q218 232 229 238" fill="none" stroke="#2c1010" stroke-width="2.8" stroke-linecap="round"/>
-      <!-- Left eye -->
-      <ellipse cx="182" cy="255" rx="16" ry="18" fill="white"/>
-      <ellipse cx="182" cy="257" rx="11" ry="13" fill="#6B3A2A"/>
-      <ellipse cx="182" cy="256" rx="7"  ry="8.5" fill="#2c1010"/>
-      <ellipse cx="177" cy="251" rx="3.5" ry="3.5" fill="white"/>
-      <!-- Right eye -->
-      <ellipse cx="218" cy="255" rx="16" ry="18" fill="white"/>
-      <ellipse cx="218" cy="257" rx="11" ry="13" fill="#6B3A2A"/>
-      <ellipse cx="218" cy="256" rx="7"  ry="8.5" fill="#2c1010"/>
-      <ellipse cx="213" cy="251" rx="3.5" ry="3.5" fill="white"/>
-      <!-- Blush -->
-      <ellipse cx="162" cy="271" rx="12" ry="7" fill="#f08070" opacity="0.45"/>
-      <ellipse cx="238" cy="271" rx="12" ry="7" fill="#f08070" opacity="0.45"/>
-      <!-- Smile -->
-      <path d="M186 290 Q200 300 214 290" fill="none" stroke="#c06050" stroke-width="2.2" stroke-linecap="round"/>
-      <!-- Arms -->
-      <ellipse cx="148" cy="358" rx="18" ry="10" fill="#a93226" transform="rotate(-25,148,358)"/>
-      <ellipse cx="140" cy="375" rx="14" ry="9"  fill="#F4C5A0" transform="rotate(-15,140,375)"/>
-      <ellipse cx="252" cy="358" rx="18" ry="10" fill="#a93226" transform="rotate(25,252,358)"/>
-      <ellipse cx="260" cy="375" rx="14" ry="9"  fill="#F4C5A0" transform="rotate(15,260,375)"/>
-      <!-- Scroll in hand -->
-      <rect x="128" y="388" width="144" height="20" rx="6" fill="rgba(255,255,255,0.25)"/>
-      <circle cx="128" cy="398" r="12" fill="rgba(255,255,255,0.3)"/>
-      <circle cx="272" cy="398" r="12" fill="rgba(255,255,255,0.3)"/>
-      <text x="200" y="403" text-anchor="middle" font-family="serif" font-size="14" fill="white" font-weight="bold">心力</text>
+    <!-- Mascot (Xinlì / شينلي) -->
+    <div class="splash-mascot">
+      <svg width="110" height="110" viewBox="0 0 70 70" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="35" cy="35" r="33" fill="rgba(255,255,255,0.13)" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/>
+        <!-- Hair -->
+        <ellipse cx="35" cy="17" rx="16" ry="10" fill="#1a1010"/>
+        <!-- Head -->
+        <ellipse cx="35" cy="27" rx="15" ry="16" fill="#F4C5A0"/>
+        <!-- Red hair ribbon -->
+        <path d="M20 14 Q35 8 50 14" fill="none" stroke="#C0392B" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- Eyes white -->
+        <ellipse cx="29" cy="27" rx="4"   ry="4.5" fill="white"/>
+        <ellipse cx="41" cy="27" rx="4"   ry="4.5" fill="white"/>
+        <!-- Pupils -->
+        <ellipse cx="29" cy="28" rx="2.5" ry="3"   fill="#1a1010"/>
+        <ellipse cx="41" cy="28" rx="2.5" ry="3"   fill="#1a1010"/>
+        <!-- Eye shine -->
+        <circle  cx="30" cy="26.5" r="1"           fill="white"/>
+        <circle  cx="42" cy="26.5" r="1"           fill="white"/>
+        <!-- Blush -->
+        <ellipse cx="22" cy="32" rx="4" ry="2.5" fill="#f08070" opacity="0.5"/>
+        <ellipse cx="48" cy="32" rx="4" ry="2.5" fill="#f08070" opacity="0.5"/>
+        <!-- Smile -->
+        <path d="M28 38 Q35 43 42 38" fill="none" stroke="#c06050" stroke-width="1.5" stroke-linecap="round"/>
+        <!-- Body / robe (red) -->
+        <ellipse cx="35" cy="57" rx="18" ry="14" fill="#C0392B"/>
+        <!-- Collar -->
+        <ellipse cx="35" cy="46" rx="8" ry="4" fill="#f5e8e0"/>
+        <!-- Heart/Xinli character on robe -->
+        <text x="35" y="61" text-anchor="middle" font-family="serif" font-size="10" fill="rgba(255,255,255,0.85)">心</text>
+      </svg>
+    </div>
+
+    <div class="splash-title">
+      <h1>Red Silk HSK</h1>
+      <div class="sub">منصة تعلم الصينية للناطقين بالعربية</div>
+      <div class="chin">心力 · Xīnlì</div>
+    </div>
+
+    <div class="splash-loader">
+      <div class="splash-loader-fill"></div>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       TOPBAR
+  ======================================================= -->
+  <header class="topbar">
+    <div class="topbar-inner">
+
+      <!-- Brand Logo -->
+      <div class="brand" onclick="showTab('home')">
+        <div class="brand-mark">
+          <svg width="28" height="28" viewBox="0 0 70 70" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="35" cy="27" rx="15" ry="16" fill="#F4C5A0"/>
+            <ellipse cx="35" cy="17" rx="16" ry="10" fill="#1a1010"/>
+            <path d="M20 13 Q35 7 50 13" fill="none" stroke="#e74c3c" stroke-width="3" stroke-linecap="round"/>
+            <ellipse cx="29" cy="27" rx="4"   ry="4.5" fill="white"/>
+            <ellipse cx="41" cy="27" rx="4"   ry="4.5" fill="white"/>
+            <ellipse cx="29" cy="28" rx="2.5" ry="3"   fill="#1a1010"/>
+            <ellipse cx="41" cy="28" rx="2.5" ry="3"   fill="#1a1010"/>
+            <path d="M28 38 Q35 43 42 38" fill="none" stroke="#c06050" stroke-width="1.5" stroke-linecap="round"/>
+            <ellipse cx="35" cy="56" rx="17" ry="13" fill="rgba(255,255,255,0.2)"/>
+            <text x="35" y="60" text-anchor="middle" font-family="serif" font-size="10" fill="rgba(255,255,255,0.9)">心</text>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title" id="brand-title">Red Silk HSK</span>
+          <span class="brand-sub">منصة تعلم الصينية · HSK 1</span>
+        </div>
+      </div>
+
+      <!-- Hamburger (mobile) -->
+      <button class="menu-toggle" onclick="toggleMenu(event)" aria-label="القائمة">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <!-- Right Actions -->
+      <div class="topbar-actions">
+        <div class="user-stats">
+          <span id="user-xp">0 XP</span>
+          <span id="user-streak">🔥 1</span>
+        </div>
+        <button class="lang-toggle" onclick="toggleTheme()" id="theme-btn">فاتح</button>
+        <button class="lang-toggle" onclick="toggleLang()">
+          <span id="lang-btn-text">English</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Overlay behind mobile nav drawer -->
+  <div class="nav-overlay" id="nav_overlay" onclick="closeNav()"></div>
+
+  <!-- Navigation (injected by JS) -->
+  <nav class="topnav" id="top_nav"></nav>
+
+  <!-- Scroll hint -->
+  <div class="nav-scroll-hint" id="nav_hint">▼ مزيد</div>
+
+  <!-- ======================================================
+       QUIZ RESULT MODAL
+  ======================================================= -->
+  <div class="modal" id="modal">
+    <div class="min">
+      <div class="mem" id="mEm">🎉</div>
+      <div class="mt"  id="mT">أحسنت!</div>
+      <div class="msc" id="mSc">10/10</div>
+      <div class="mmsg" id="mMsg">عمل ممتاز! شينلي فخورة بك 🌟</div>
+      <button class="mcl" onclick="document.getElementById('modal').classList.remove('show')">
+        إغلاق ✖
+      </button>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       FLOATING CONTROLS — Pinyin Toggle + Xinli Button
+       Both positioned bottom-left, stacked vertically
+  ======================================================= -->
+
+  <!-- Xinlì AI Assistant Button (above the pinyin toggle) -->
+  <button
+    id="xinli-fab"
+    class="xinli-fab"
+    onclick="XinliAssistant.open()"
+    title="اسأل شينلي Xīnlì"
+    aria-label="فتح مساعدة شينلي"
+  >
+    <!-- Xinlì face SVG -->
+    <svg width="30" height="30" viewBox="0 0 70 70" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="35" cy="27" rx="15" ry="16" fill="#F4C5A0"/>
+      <ellipse cx="35" cy="17" rx="16" ry="10" fill="#1a1010"/>
+      <path d="M20 13 Q35 7 50 13" fill="none" stroke="#e74c3c" stroke-width="2.5" stroke-linecap="round"/>
+      <ellipse cx="29" cy="27" rx="4"   ry="4.5" fill="white"/>
+      <ellipse cx="41" cy="27" rx="4"   ry="4.5" fill="white"/>
+      <ellipse cx="29" cy="28" rx="2.5" ry="3"   fill="#1a1010"/>
+      <ellipse cx="41" cy="28" rx="2.5" ry="3"   fill="#1a1010"/>
+      <circle  cx="30" cy="26" r="1"             fill="white"/>
+      <circle  cx="42" cy="26" r="1"             fill="white"/>
+      <ellipse cx="22" cy="32" rx="3.5" ry="2" fill="#f08070" opacity="0.5"/>
+      <ellipse cx="48" cy="32" rx="3.5" ry="2" fill="#f08070" opacity="0.5"/>
+      <path d="M28 38 Q35 43 42 38" fill="none" stroke="#c06050" stroke-width="1.5" stroke-linecap="round"/>
+      <ellipse cx="35" cy="56" rx="16" ry="12" fill="rgba(255,255,255,0.18)"/>
+      <text x="35" y="60" text-anchor="middle" font-family="serif" font-size="9" fill="rgba(255,255,255,0.85)">心</text>
     </svg>
-  </div>
+    <!-- Pulsing dot (visible before first open) -->
+    <span class="xinli-fab-dot" id="xinli-dot"></span>
+    <!-- Pulsing ring animation -->
+    <span class="xinli-fab-ring"></span>
+  </button>
 
-  <div class="splash-title">
-    <h1>Red Silk HSK</h1>
-    <div class="sub">تعلّم الصينية بطريقة جديدة</div>
-    <div class="chin">汉语水平考试</div>
-  </div>
+  <!-- Floating Pinyin Toggle -->
+  <button id="floating-py-toggle" class="py-toggle" onclick="togglePinyin()" title="إخفاء/إظهار البينيين">
+    <span>👁️</span>
+  </button>
 
-  <div class="splash-loader">
-    <div class="splash-loader-fill"></div>
-  </div>
-</div>
+  <!-- ======================================================
+       XINLI CHAT PANEL
+  ======================================================= -->
 
-<!-- ================================================================
-     COMPACT TOPBAR (desktop only — mobile uses bottom nav)
-================================================================ -->
-<header class="topbar" id="main-topbar">
-  <div class="topbar-inner">
-    <!-- Brand -->
-    <div class="brand" onclick="showTab('home')">
-      <div class="brand-mark">
-        <svg width="26" height="26" viewBox="0 0 70 70" xmlns="http://www.w3.org/2000/svg">
-          <ellipse cx="35" cy="27" rx="15" ry="16" fill="#F4C5A0"/>
-          <ellipse cx="35" cy="17" rx="16" ry="10" fill="#1a1010"/>
-          <path d="M20 13 Q35 7 50 13" fill="none" stroke="#e74c3c" stroke-width="3" stroke-linecap="round"/>
-          <ellipse cx="29" cy="27" rx="4"   ry="4.5" fill="white"/>
-          <ellipse cx="41" cy="27" rx="4"   ry="4.5" fill="white"/>
-          <ellipse cx="29" cy="28" rx="2.5" ry="3"   fill="#1a1010"/>
-          <ellipse cx="41" cy="28" rx="2.5" ry="3"   fill="#1a1010"/>
-          <path d="M28 38 Q35 43 42 38" fill="none" stroke="#c06050" stroke-width="1.5" stroke-linecap="round"/>
-          <ellipse cx="35" cy="56" rx="16" ry="12" fill="rgba(255,255,255,0.2)"/>
-          <text x="35" y="60" text-anchor="middle" font-family="serif" font-size="10" fill="rgba(255,255,255,0.9)">心</text>
-        </svg>
-      </div>
-      <div class="brand-text">
-        <span class="brand-title" id="brand-title">Red Silk HSK</span>
-        <span class="brand-sub">شينلي · 心力</span>
-      </div>
-    </div>
+  <!-- Semi-transparent backdrop — closes panel on click -->
+  <div class="xinli-backdrop" id="xinli-backdrop" onclick="XinliAssistant.close()"></div>
 
-    <!-- Hamburger (mobile) -->
-    <button class="menu-toggle" onclick="toggleMenu(event)" aria-label="القائمة">
-      <span></span><span></span><span></span>
-    </button>
+  <!-- Chat panel (slides up from bottom on mobile, floats on desktop) -->
+  <div class="xinli-panel" id="xinli-panel" role="dialog" aria-modal="true" aria-label="مساعدة شينلي Xīnlì">
 
-    <!-- Desktop actions -->
-    <div class="topbar-actions">
-      <div class="user-stats">
-        <span>⚡</span><span id="user-xp">0 XP</span>
-        <span>|</span>
-        <span id="user-streak">🔥 1</span>
-      </div>
-      <button class="tb-btn" onclick="toggleTheme()" id="theme-btn" title="الوضع الليلي">🌙</button>
-      <button class="tb-btn" onclick="toggleLang()"><span id="lang-btn-text">EN</span></button>
-    </div>
-  </div>
-</header>
+    <!-- Header -->
+    <div class="xinli-panel-header">
+      <!-- Drag handle (mobile) -->
+      <div class="xinli-drag-handle"></div>
 
-<!-- Nav overlay (mobile drawer) -->
-<div class="nav-overlay" id="nav_overlay" onclick="closeNav()"></div>
-
-<!-- Navigation injected by app.js -->
-<nav class="topnav" id="top_nav"></nav>
-<div class="nav-scroll-hint" id="nav_hint">▼ مزيد</div>
-
-<!-- ================================================================
-     HOME UPGRADE LAYER — shown only on home tab
-================================================================ -->
-<div id="home-upgrade" style="display:none;">
-
-  <!-- Hero banner -->
-  <div class="rsh-home-hero">
-    <div class="rsh-hero-pattern"></div>
-    <div class="rsh-hero-brand">
-      <div class="rsh-hero-wordmark">
-        <svg width="30" height="30" viewBox="0 0 70 70" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="35" cy="35" r="33" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
-          <ellipse cx="35" cy="27" rx="13" ry="14" fill="#F4C5A0"/>
-          <ellipse cx="35" cy="16" rx="14" ry="9"  fill="#1a1010"/>
-          <ellipse cx="29" cy="27" rx="3.5" ry="4" fill="white"/>
-          <ellipse cx="41" cy="27" rx="3.5" ry="4" fill="white"/>
-          <ellipse cx="29" cy="28" rx="2.2" ry="2.5" fill="#1a1010"/>
-          <ellipse cx="41" cy="28" rx="2.2" ry="2.5" fill="#1a1010"/>
-          <path d="M28 38 Q35 43 42 38" fill="none" stroke="#c06050" stroke-width="1.5" stroke-linecap="round"/>
-          <ellipse cx="35" cy="54" rx="14" ry="11" fill="rgba(255,255,255,0.2)"/>
-          <text x="35" y="59" text-anchor="middle" font-family="serif" font-size="9" fill="white">心</text>
-        </svg>
-        <div>
-          <div class="rsh-hero-name">Red Silk HSK</div>
-          <div class="rsh-hero-tagline">المنهج الشامل — HSK 1</div>
+      <div class="xinli-header-left">
+        <!-- Mascot avatar -->
+        <div class="xinli-avatar-wrap">
+          <svg width="40" height="40" viewBox="130 195 145 200" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="200" cy="262" rx="56" ry="62" fill="#F4C5A0"/>
+            <ellipse cx="200" cy="222" rx="58" ry="36" fill="#1a1010"/>
+            <rect x="142" y="220" width="20" height="55" rx="10" fill="#1a1010"/>
+            <rect x="238" y="220" width="20" height="55" rx="10" fill="#1a1010"/>
+            <rect x="144" y="222" width="6"  height="45" rx="3"  fill="#C0392B" opacity="0.80"/>
+            <ellipse cx="200" cy="228" rx="56" ry="22" fill="#1a1010"/>
+            <circle cx="238" cy="228" r="8"   fill="#C0392B"/>
+            <circle cx="238" cy="228" r="4.5" fill="#e74c3c"/>
+            <path d="M168 234 Q182 226 196 232" fill="none" stroke="#2c1010" stroke-width="3" stroke-linecap="round"/>
+            <path d="M204 232 Q218 226 232 234" fill="none" stroke="#2c1010" stroke-width="3" stroke-linecap="round"/>
+            <ellipse cx="182" cy="255" rx="15" ry="17" fill="white"/>
+            <ellipse cx="182" cy="256" rx="10" ry="12" fill="#6B3A2A"/>
+            <ellipse cx="182" cy="255" rx="6.5" ry="8" fill="#2c1010"/>
+            <ellipse cx="177" cy="251" rx="3"  ry="3"  fill="white"/>
+            <ellipse cx="218" cy="255" rx="15" ry="17" fill="white"/>
+            <ellipse cx="218" cy="256" rx="10" ry="12" fill="#6B3A2A"/>
+            <ellipse cx="218" cy="255" rx="6.5" ry="8" fill="#2c1010"/>
+            <ellipse cx="213" cy="251" rx="3"  ry="3"  fill="white"/>
+            <ellipse cx="162" cy="271" rx="11" ry="6" fill="#f08070" opacity="0.5"/>
+            <ellipse cx="238" cy="271" rx="11" ry="6" fill="#f08070" opacity="0.5"/>
+            <path d="M183 292 Q200 304 217 292" fill="none" stroke="#c06050" stroke-width="2.5" stroke-linecap="round"/>
+            <ellipse cx="200" cy="340" rx="45" ry="50" fill="#C0392B"/>
+            <ellipse cx="200" cy="302" rx="22" ry="12" fill="#f5f0eb"/>
+          </svg>
+        </div>
+        <div class="xinli-header-info">
+          <div class="xinli-header-name">شينلي <span class="xinli-header-badge">Xīnlì · 心力</span></div>
+          <div class="xinli-header-status" id="xinli-status">مساعدتك في تعلم الصينية ✨</div>
         </div>
       </div>
-      <div class="rsh-hero-controls">
-        <button class="rsh-hero-btn" onclick="toggleTheme()" id="home-theme-btn" title="الوضع الليلي">🌙</button>
-        <button class="rsh-hero-btn" onclick="toggleLang()" title="تغيير اللغة">🌐</button>
+
+      <div class="xinli-header-right">
+        <button class="xinli-icon-btn" onclick="XinliAssistant.clearHistory()" title="محادثة جديدة" aria-label="محادثة جديدة">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10"/>
+            <path d="M3.51 15a9 9 0 1 0 .49-3.59"/>
+          </svg>
+        </button>
+        <button class="xinli-icon-btn xinli-close-btn" onclick="XinliAssistant.close()" title="إغلاق" aria-label="إغلاق">✕</button>
       </div>
     </div>
 
-    <!-- XP / Streak / Words stats -->
-    <div class="rsh-hero-stats">
-      <div class="rsh-stat">
-        <div class="rsh-stat-val"><span>⚡</span><span id="home-xp">0</span></div>
-        <div class="rsh-stat-label">نقاط XP</div>
+    <!-- Messages -->
+    <div class="xinli-messages" id="xinli-messages"></div>
+
+    <!-- Suggested prompts (only when chat is empty) -->
+    <div class="xinli-suggestions" id="xinli-suggestions">
+      <div class="xinli-suggestions-label">اسألني مثلاً:</div>
+      <div class="xinli-chips-wrap" id="xinli-chips"></div>
+    </div>
+
+    <!-- Input row -->
+    <div class="xinli-input-area">
+      <div class="xinli-input-row">
+        <textarea
+          id="xinli-input"
+          class="xinli-textarea"
+          placeholder="اكتب سؤالك هنا..."
+          rows="1"
+          maxlength="600"
+          dir="rtl"
+          onkeydown="XinliAssistant.handleKey(event)"
+          oninput="XinliAssistant.autoResize(this)"
+        ></textarea>
+        <button
+          class="xinli-send-btn"
+          id="xinli-send"
+          onclick="XinliAssistant.send()"
+          aria-label="إرسال"
+          disabled
+        >
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+        </button>
       </div>
-      <div class="rsh-stat">
-        <div class="rsh-stat-val"><span>🔥</span><span id="home-streak">1</span></div>
-        <div class="rsh-stat-label">أيام متتالية</div>
-      </div>
-      <div class="rsh-stat">
-        <div class="rsh-stat-val"><span>📖</span><span id="home-words">0</span></div>
-        <div class="rsh-stat-label">كلمة تعلّمتها</div>
-      </div>
+      <div class="xinli-input-hint">Enter للإرسال · Shift+Enter لسطر جديد</div>
     </div>
   </div>
 
-  <!-- Mascot greeting bar (floats above hero) -->
-  <div class="rsh-mascot-bar">
-    <div class="rsh-mascot-avatar">
-      <!-- Xinlì face — compact close-up view -->
-      <svg width="56" height="56" viewBox="130 200 140 130" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="200" cy="262" rx="56" ry="62" fill="#F4C5A0"/>
-        <ellipse cx="200" cy="222" rx="58" ry="36" fill="#1a1010"/>
-        <rect x="142" y="220" width="20" height="50" rx="10" fill="#1a1010"/>
-        <rect x="238" y="220" width="20" height="50" rx="10" fill="#1a1010"/>
-        <rect x="144" y="222" width="6"  height="42" rx="3"  fill="#C0392B" opacity="0.75"/>
-        <ellipse cx="200" cy="228" rx="56" ry="22" fill="#1a1010"/>
-        <circle cx="238" cy="228" r="8"  fill="#C0392B"/>
-        <circle cx="238" cy="228" r="4.5" fill="#e74c3c"/>
-        <path d="M171 238 Q182 232 193 237" fill="none" stroke="#2c1010" stroke-width="2.8" stroke-linecap="round"/>
-        <path d="M207 237 Q218 232 229 238" fill="none" stroke="#2c1010" stroke-width="2.8" stroke-linecap="round"/>
-        <ellipse cx="182" cy="255" rx="15" ry="17" fill="white"/>
-        <ellipse cx="182" cy="257" rx="10" ry="12" fill="#6B3A2A"/>
-        <ellipse cx="182" cy="256" rx="6.5" ry="8" fill="#2c1010"/>
-        <ellipse cx="177" cy="251" rx="3"  ry="3"  fill="white"/>
-        <ellipse cx="218" cy="255" rx="15" ry="17" fill="white"/>
-        <ellipse cx="218" cy="257" rx="10" ry="12" fill="#6B3A2A"/>
-        <ellipse cx="218" cy="256" rx="6.5" ry="8" fill="#2c1010"/>
-        <ellipse cx="213" cy="251" rx="3"  ry="3"  fill="white"/>
-        <ellipse cx="162" cy="271" rx="11" ry="6" fill="#f08070" opacity="0.45"/>
-        <ellipse cx="238" cy="271" rx="11" ry="6" fill="#f08070" opacity="0.45"/>
-        <path d="M186 290 Q200 300 214 290" fill="none" stroke="#c06050" stroke-width="2.2" stroke-linecap="round"/>
-      </svg>
-    </div>
-    <div class="rsh-mascot-bubble">
-      <div class="rsh-mascot-text" id="mascot-greeting">أهلاً! كلمة اليوم تنتظرك 📜</div>
-      <div class="rsh-mascot-name">
-        <span>شينلي</span>
-        <span class="rsh-name-badge">心力</span>
+  <!-- ======================================================
+       MAIN APP SHELL
+  ======================================================= -->
+  <div id="app">
+    <div id="content">
+      <div id="main_area"></div>
+
+      <!-- Footer -->
+      <div style="text-align:center;padding:2rem 1.5rem;color:var(--text-3);font-size:.78rem;border-top:1px solid var(--border-2);margin-top:2.5rem;background:var(--red-pale);direction:rtl;">
+        <p style="font-size:1rem;color:var(--red);font-family:var(--font-display);font-weight:700;margin-bottom:.4rem;">
+          Red Silk HSK · شينلي / Xīnlì (心力)
+        </p>
+        <p>📚 منصة تعلم الصينية — المستوى الأول HSK 1</p>
+        <p>🇨🇳 جميع الحقوق محفوظة © <strong>Hossam Aldeen Hassan</strong> 2026</p>
+        <p>🌟 نتمنى لك تجربة تعلم ممتعة!</p>
       </div>
     </div>
   </div>
 
-  <!-- Word of the Day -->
-  <div class="rsh-home-section">
-    <div class="rsh-section-header">
-      <div class="rsh-section-title">كلمة اليوم</div>
-      <button class="rsh-section-link" onclick="refreshWOD()">🔄 كلمة أخرى</button>
-    </div>
-    <div class="rsh-wod" id="rsh-wod-card" onclick="learnWOD()">
-      <div class="rsh-wod-corner"></div>
-      <div class="rsh-wod-badge">✨ اضغط لتتعلمها</div>
-      <div class="rsh-wod-zh" id="rsh-wod-zh">你好</div>
-      <div class="rsh-wod-py" id="rsh-wod-py">nǐ hǎo</div>
-      <div class="rsh-wod-ar" id="rsh-wod-ar">مرحباً</div>
-      <div class="rsh-wod-type" id="rsh-wod-type">تعبير</div>
-    </div>
-  </div>
-
-  <!-- Quick Nav Grid -->
-  <div class="rsh-home-section" style="margin-top:4px;">
-    <div class="rsh-section-title" style="margin-bottom:14px;">ابدأ من هنا</div>
-    <div class="rsh-quick-grid">
-      <button class="rsh-quick-card rsh-quick-featured" onclick="showTab('vocab')">
-        <div class="rsh-q-icon">📚</div>
-        <div class="rsh-q-title">المفردات</div>
-        <div class="rsh-q-sub">500 كلمة</div>
-      </button>
-      <button class="rsh-quick-card" onclick="showTab('grammar')">
-        <div class="rsh-q-icon">📐</div>
-        <div class="rsh-q-title">القواعد</div>
-        <div class="rsh-q-sub">15 قاعدة</div>
-      </button>
-      <button class="rsh-quick-card" onclick="showTab('sentences')">
-        <div class="rsh-q-icon">💬</div>
-        <div class="rsh-q-title">الجمل</div>
-        <div class="rsh-q-sub">جمل وحوارات</div>
-      </button>
-      <button class="rsh-quick-card" onclick="showTab('bigexam')">
-        <div class="rsh-q-icon">🏆</div>
-        <div class="rsh-q-title">الاختبار</div>
-        <div class="rsh-q-sub">امتحن نفسك</div>
-      </button>
-    </div>
-  </div>
-
-  <!-- Progress -->
-  <div class="rsh-home-section" style="margin-top:4px; padding-bottom:12px;">
-    <div class="rsh-section-title" style="margin-bottom:14px;">تقدّمك في المنهج</div>
-    <div class="rsh-progress-card">
-      <div class="rsh-prog-row">
-        <div class="rsh-prog-label">المفردات</div>
-        <div class="rsh-prog-pct" id="rsh-prog-vocab-pct">0%</div>
-      </div>
-      <div class="rsh-prog-bar"><div class="rsh-prog-fill" id="rsh-prog-vocab" style="width:0%"></div></div>
-      <div class="rsh-prog-row">
-        <div class="rsh-prog-label">القواعد</div>
-        <div class="rsh-prog-pct" id="rsh-prog-gram-pct">0%</div>
-      </div>
-      <div class="rsh-prog-bar"><div class="rsh-prog-fill" id="rsh-prog-gram" style="width:0%"></div></div>
-    </div>
-  </div>
-</div>
-
-<!-- ================================================================
-     MODAL (quiz result)
-================================================================ -->
-<div class="modal" id="modal">
-  <div class="rsh-modal-inner">
-    <!-- Mascot result expression -->
-    <div class="rsh-modal-mascot" id="modal-mascot">🎉</div>
-    <div class="rsh-modal-emoji" id="mEm"></div>
-    <div class="rsh-modal-title" id="mT">أحسنت!</div>
-    <div class="rsh-modal-score" id="mSc">10/10</div>
-    <div class="rsh-modal-msg"   id="mMsg">شينلي فخورة بك! 🌟</div>
-    <button class="rsh-modal-close" onclick="document.getElementById('modal').classList.remove('show')">
-      إغلاق ✖
-    </button>
-  </div>
-</div>
-
-<!-- Floating Pinyin Toggle -->
-<button id="floating-py-toggle" onclick="togglePinyin()" title="إخفاء/إظهار البينيين">
-  <span>👁️</span>
-</button>
-
-<!-- ================================================================
-     MAIN APP CONTENT
-================================================================ -->
-<div id="app">
-  <div id="content">
-    <div id="main_area"></div>
-
-    <!-- Footer -->
-    <footer class="rsh-footer">
-      <div class="rsh-footer-logo">
-        <svg width="28" height="28" viewBox="0 0 70 70" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="35" cy="35" r="33" fill="#C0392B"/>
-          <ellipse cx="35" cy="27" rx="13" ry="14" fill="#F4C5A0"/>
-          <ellipse cx="35" cy="16" rx="14" ry="9"  fill="#1a1010"/>
-          <ellipse cx="29" cy="27" rx="3.5" ry="4" fill="white"/>
-          <ellipse cx="41" cy="27" rx="3.5" ry="4" fill="white"/>
-          <ellipse cx="29" cy="28" rx="2.2" ry="2.5" fill="#1a1010"/>
-          <ellipse cx="41" cy="28" rx="2.2" ry="2.5" fill="#1a1010"/>
-          <path d="M28 38 Q35 43 42 38" fill="none" stroke="#c06050" stroke-width="1.5" stroke-linecap="round"/>
-          <text x="35" y="59" text-anchor="middle" font-family="serif" font-size="9" fill="white">心</text>
-        </svg>
-        <div>
-          <div class="rsh-footer-name">Red Silk HSK · شينلي / Xīnlì (心力)</div>
-          <div class="rsh-footer-copy">© Hossam Aldeen Hassan 2026 — جميع الحقوق محفوظة</div>
-        </div>
-      </div>
-    </footer>
-  </div>
-</div>
-
-<!-- ================================================================
-     MOBILE BOTTOM NAVIGATION
-================================================================ -->
-<nav id="bottom-nav" class="rsh-bottom-nav">
-  <button class="rsh-nav-btn active" data-tab="home"    onclick="showTab('home')">
-    <div class="rsh-nav-icon">🏠</div>
-    <div class="rsh-nav-label">الرئيسية</div>
-  </button>
-  <button class="rsh-nav-btn" data-tab="vocab"   onclick="showTab('vocab')">
-    <div class="rsh-nav-icon">📚</div>
-    <div class="rsh-nav-label">المفردات</div>
-  </button>
-  <button class="rsh-nav-btn" data-tab="grammar" onclick="showTab('grammar')">
-    <div class="rsh-nav-icon">📐</div>
-    <div class="rsh-nav-label">القواعد</div>
-  </button>
-  <button class="rsh-nav-btn" data-tab="sentences" onclick="showTab('sentences')">
-    <div class="rsh-nav-icon">💬</div>
-    <div class="rsh-nav-label">التدريب</div>
-  </button>
-  <button class="rsh-nav-btn" data-tab="bigexam" onclick="showTab('bigexam')">
-    <div class="rsh-nav-icon">🏆</div>
-    <div class="rsh-nav-label">الاختبار</div>
-  </button>
-</nav>
-
-<!-- Toast -->
-<div class="rsh-toast" id="toast"></div>
-
-<!-- ================================================================
-     CHILI AI ASSISTANT — Button + Full Chat Panel
-================================================================ -->
-
-<!-- Floating Chili button (near pinyin toggle) -->
-<button id="chili-btn" class="chili-fab" onclick="XinliAssistant.open()" title="اسأل شينلي Xīnlì" aria-label="فتح مساعدة شينلي">
-  <!-- Xinlì face SVG -->
-  <svg class="chili-fab-face" width="32" height="32" viewBox="130 200 140 130" xmlns="http://www.w3.org/2000/svg">
-    <ellipse cx="200" cy="262" rx="56" ry="62" fill="#F4C5A0"/>
-    <ellipse cx="200" cy="222" rx="58" ry="36" fill="#1a1010"/>
-    <rect x="142" y="220" width="20" height="50" rx="10" fill="#1a1010"/>
-    <rect x="238" y="220" width="20" height="50" rx="10" fill="#1a1010"/>
-    <rect x="144" y="222" width="6"  height="42" rx="3"  fill="#C0392B" opacity="0.85"/>
-    <ellipse cx="200" cy="228" rx="56" ry="22" fill="#1a1010"/>
-    <circle cx="238" cy="228" r="8"   fill="#C0392B"/>
-    <circle cx="238" cy="228" r="4.5" fill="#e74c3c"/>
-    <path d="M171 238 Q182 232 193 237" fill="none" stroke="#2c1010" stroke-width="2.8" stroke-linecap="round"/>
-    <path d="M207 237 Q218 232 229 238" fill="none" stroke="#2c1010" stroke-width="2.8" stroke-linecap="round"/>
-    <ellipse cx="182" cy="255" rx="15" ry="17" fill="white"/>
-    <ellipse cx="182" cy="257" rx="10" ry="12" fill="#6B3A2A"/>
-    <ellipse cx="182" cy="256" rx="6.5" ry="8" fill="#2c1010"/>
-    <ellipse cx="177" cy="251" rx="3"  ry="3"  fill="white"/>
-    <ellipse cx="218" cy="255" rx="15" ry="17" fill="white"/>
-    <ellipse cx="218" cy="257" rx="10" ry="12" fill="#6B3A2A"/>
-    <ellipse cx="218" cy="256" rx="6.5" ry="8" fill="#2c1010"/>
-    <ellipse cx="213" cy="251" rx="3"  ry="3"  fill="white"/>
-    <ellipse cx="162" cy="271" rx="11" ry="6" fill="#f08070" opacity="0.5"/>
-    <ellipse cx="238" cy="271" rx="11" ry="6" fill="#f08070" opacity="0.5"/>
-    <path d="M186 290 Q200 300 214 290" fill="none" stroke="#c06050" stroke-width="2.2" stroke-linecap="round"/>
-  </svg>
-  <!-- Notification dot — hidden by default, shown when Chili has a suggestion -->
-  <span class="chili-fab-dot" id="chili-dot" style="display:none"></span>
-</button>
-
-<!-- Chat panel backdrop -->
-<div class="chili-backdrop" id="chili-backdrop" onclick="XinliAssistant.close()"></div>
-
-<!-- Chat panel -->
-<div class="chili-panel" id="chili-panel" role="dialog" aria-modal="true" aria-label="مساعدة شينلي Xīnlì">
-
-  <!-- Panel Header -->
-  <div class="chili-header">
-    <div class="chili-header-avatar">
-      <svg width="44" height="44" viewBox="130 195 145 200" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="200" cy="262" rx="56" ry="62" fill="#F4C5A0"/>
-        <ellipse cx="200" cy="222" rx="58" ry="36" fill="#1a1010"/>
-        <rect x="142" y="220" width="20" height="55" rx="10" fill="#1a1010"/>
-        <rect x="238" y="220" width="20" height="55" rx="10" fill="#1a1010"/>
-        <rect x="144" y="222" width="6"  height="45" rx="3"  fill="#C0392B" opacity="0.80"/>
-        <ellipse cx="200" cy="228" rx="56" ry="22" fill="#1a1010"/>
-        <circle cx="238" cy="228" r="8"   fill="#C0392B"/>
-        <circle cx="238" cy="228" r="4.5" fill="#e74c3c"/>
-        <path d="M168 234 Q182 226 196 232" fill="none" stroke="#2c1010" stroke-width="3" stroke-linecap="round"/>
-        <path d="M204 232 Q218 226 232 234" fill="none" stroke="#2c1010" stroke-width="3" stroke-linecap="round"/>
-        <ellipse cx="182" cy="255" rx="15" ry="17" fill="white"/>
-        <ellipse cx="182" cy="256" rx="10" ry="12" fill="#6B3A2A"/>
-        <ellipse cx="182" cy="255" rx="6.5" ry="8" fill="#2c1010"/>
-        <ellipse cx="177" cy="251" rx="3"  ry="3"  fill="white"/>
-        <ellipse cx="218" cy="255" rx="15" ry="17" fill="white"/>
-        <ellipse cx="218" cy="256" rx="10" ry="12" fill="#6B3A2A"/>
-        <ellipse cx="218" cy="255" rx="6.5" ry="8" fill="#2c1010"/>
-        <ellipse cx="213" cy="251" rx="3"  ry="3"  fill="white"/>
-        <ellipse cx="162" cy="271" rx="11" ry="6" fill="#f08070" opacity="0.5"/>
-        <ellipse cx="238" cy="271" rx="11" ry="6" fill="#f08070" opacity="0.5"/>
-        <path d="M183 292 Q200 304 217 292" fill="none" stroke="#c06050" stroke-width="2.5" stroke-linecap="round"/>
-        <ellipse cx="200" cy="340" rx="45" ry="50" fill="#C0392B"/>
-        <ellipse cx="200" cy="302" rx="22" ry="12" fill="#f5f0eb"/>
-      </svg>
-    </div>
-    <div class="chili-header-info">
-      <div class="chili-header-name">شينلي <span class="chili-header-badge">Xīnlì · 心力</span></div>
-      <div class="chili-header-status" id="chili-status">مساعدتك في تعلم الصينية ✨</div>
-    </div>
-    <div class="chili-header-actions">
-      <button class="chili-clear-btn" onclick="XinliAssistant.clearHistory()" title="محادثة جديدة">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.59"/>
-        </svg>
-      </button>
-      <button class="chili-close-btn" onclick="XinliAssistant.close()" title="إغلاق">✕</button>
-    </div>
-  </div>
-
-  <!-- Messages area -->
-  <div class="chili-messages" id="chili-messages">
-    <!-- Welcome message rendered by JS -->
-  </div>
-
-  <!-- Suggested prompts (shown when messages area is mostly empty) -->
-  <div class="chili-suggestions" id="chili-suggestions">
-    <div class="chili-suggestions-label">اسأليني مثلاً:</div>
-    <div class="chili-chips" id="chili-chips">
-      <!-- Dynamic chips injected by JS based on current tab -->
-    </div>
-  </div>
-
-  <!-- Input area -->
-  <div class="chili-input-area">
-    <div class="chili-input-row">
-      <textarea
-        id="chili-input"
-        class="chili-textarea"
-        placeholder="اكتب سؤالك هنا..."
-        rows="1"
-        maxlength="600"
-        dir="rtl"
-        onkeydown="XinliAssistant.handleKey(event)"
-        oninput="XinliAssistant.autoResize(this)"
-      ></textarea>
-      <button class="chili-send-btn" id="chili-send" onclick="XinliAssistant.send()" aria-label="إرسال" disabled>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-        </svg>
-      </button>
-    </div>
-    <div class="chili-input-hint">اضغط Enter للإرسال · Shift+Enter لسطر جديد</div>
-  </div>
-</div>
-
-<!-- ================================================================
-     SCRIPTS
-================================================================ -->
-<script src="data/full_dict.js"></script>
-<script src="js/app.js"></script>
-
-<!-- ================================================================
-     ENHANCEMENT LAYER — hooks into app.js without modifying it
-================================================================ -->
-<script>
-(function() {
-  /* ── Splash dismiss ── */
-  setTimeout(function() {
-    var s = document.getElementById('splash');
-    if (!s) return;
-    s.classList.add('hide');
-    setTimeout(function() { if (s.parentNode) s.parentNode.removeChild(s); }, 700);
-  }, 2400);
-
-  /* ── Word of Day ── */
-  var _wodWord = null;
-
-  function pickWOD() {
-    var words = typeof W !== 'undefined' ? W : (window.W || []);
-    if (!words.length) return null;
-    var today = new Date().toDateString();
-    var idx = Math.abs(today.split('').reduce(function(a, c) { return a + c.charCodeAt(0); }, 0)) % words.length;
-    return words[idx];
-  }
-
-  function renderWOD(word) {
-    if (!word) return;
-    _wodWord = word;
-    var set = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
-    set('rsh-wod-zh',   word.h || word.zh || word[0] || '你好');
-    set('rsh-wod-py',   word.p || word.py || word[1] || '');
-    set('rsh-wod-ar',   word.m || word.ar || word[2] || '');
-    set('rsh-wod-type', word.t || word.type || '');
-  }
-
-  window.refreshWOD = function() {
-    var words = typeof W !== 'undefined' ? W : (window.W || []);
-    if (!words.length) return;
-    var w = words[Math.floor(Math.random() * words.length)];
-    renderWOD(w);
-  };
-
-  window.learnWOD = function() {
-    if (!_wodWord) return;
-    var h = _wodWord.h || _wodWord.zh || _wodWord[0];
-    if (typeof speakChinese === 'function') speakChinese(h);
-    if (typeof toggleWordLearned === 'function') toggleWordLearned(h, null);
-    var card = document.getElementById('rsh-wod-card');
-    if (card) { card.style.borderColor = '#27ae60'; setTimeout(function() { card.style.borderColor = ''; }, 1200); }
-  };
-
-  /* ── Mascot greetings ── */
-  var greetings = [
-    'أهلاً! كلمة اليوم تنتظرك 📜',
-    'هيا نتعلم كلمة جديدة ✨',
-    'مرحباً! استمر في التعلم 加油！',
-    'كل كلمة جديدة خطوة للإتقان 🌟',
-    'لا تنسَ مراجعة الكلمات اليوم 🎯'
-  ];
-
-  function setGreeting() {
-    var el = document.getElementById('mascot-greeting');
-    var wc = typeof learnedWords !== 'undefined' ? learnedWords.size : 0;
-    var msgs = greetings.slice();
-    if (wc > 0) msgs.push('رائع! تعلّمت ' + wc + ' كلمة 🎉');
-    if (el) el.textContent = msgs[Math.floor(Math.random() * msgs.length)];
-  }
-
-  /* ── Sync home stats with app.js state ── */
-  function syncHomeStats() {
-    var xp  = typeof userProgress !== 'undefined' ? (userProgress.stats && userProgress.stats.xp)     || 0 : 0;
-    var str = typeof userProgress !== 'undefined' ? (userProgress.stats && userProgress.stats.streak)  || 1 : 1;
-    var wc  = typeof learnedWords !== 'undefined' ? learnedWords.size : 0;
-
-    var set = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
-    set('home-xp',      xp);
-    set('home-streak',  str);
-    set('home-words',   wc);
-
-    /* progress bars */
-    var total = (typeof W !== 'undefined' && W.length) ? W.length : 500;
-    var vpct  = total ? Math.round(wc / total * 100) : 0;
-    var gDone = 0, gTotal = 1;
-    if (typeof GRAMMAR !== 'undefined') { gTotal = GRAMMAR.length || 1; }
-    if (typeof userProgress !== 'undefined' && userProgress.words) {
-      gDone = Object.keys(userProgress.words).length > 0 ? gDone : 0;
-    }
-    var setBar = function(idBar, idPct, pct) {
-      var b = document.getElementById(idBar), p = document.getElementById(idPct);
-      if (b) b.style.width = pct + '%';
-      if (p) p.textContent = pct + '%';
-    };
-    setBar('rsh-prog-vocab', 'rsh-prog-vocab-pct', vpct);
-  }
-
-  /* ── showTab hook ── */
-  var _origShowTab = window.showTab;
-  window.showTab = function(tabId) {
-    if (typeof _origShowTab === 'function') _origShowTab(tabId);
-    var hu = document.getElementById('home-upgrade');
-    if (!hu) return;
-    var isHome = (tabId === 'home' || tabId === 'intro');
-    hu.style.display = isHome ? 'block' : 'none';
-
-    /* update mobile bottom nav active state */
-    document.querySelectorAll('.rsh-nav-btn').forEach(function(btn) {
-      btn.classList.toggle('active', btn.dataset.tab === tabId);
-    });
-
-    if (isHome) {
-      syncHomeStats();
-      setGreeting();
-    }
-  };
-
-  /* ── toggleTheme sync ── */
-  var _origToggleTheme = window.toggleTheme;
-  window.toggleTheme = function() {
-    if (typeof _origToggleTheme === 'function') _origToggleTheme();
-    var isDark = document.body.classList.contains('dark');
-    var hBtn = document.getElementById('home-theme-btn');
-    var tBtn = document.getElementById('theme-btn');
-    if (hBtn) hBtn.textContent = isDark ? '☀️' : '🌙';
-    if (tBtn) tBtn.textContent = isDark ? '☀️' : '🌙';
-  };
-
-  /* ── DOMContentLoaded bootstrap ── */
-  document.addEventListener('DOMContentLoaded', function() {
-    /* show home layer by default */
-    var hu = document.getElementById('home-upgrade');
-    if (hu) hu.style.display = 'block';
-
-    /* wait briefly for app.js to init, then render WOD + stats */
-    setTimeout(function() {
-      var word = pickWOD();
-      renderWOD(word);
-      syncHomeStats();
-      setGreeting();
-    }, 300);
-
-    /* mobile bottom nav: sync with current tab */
-    document.querySelectorAll('.rsh-nav-btn').forEach(function(btn) {
-      btn.classList.toggle('active', btn.dataset.tab === 'home');
-    });
-  });
-
-})();
-</script>
-
-<!-- ================================================================
-     XINLI ASSISTANT MODULE  — heart of the AI experience
-     API key lives ONLY in Netlify env vars, never here.
-     All requests go to /.netlify/functions/xinli
-================================================================ -->
-<script>
-var XinliAssistant = (function () {
-  'use strict';
-
-  /* ────────────────────────────────────────────────────────
-     STATE
-  ──────────────────────────────────────────────────────── */
-  var _open       = false;
-  var _loading    = false;
-  var _messages   = [];      // {role:'user'|'assistant', content:string}[]
-  var _currentTab = 'home';
-
-  /* ────────────────────────────────────────────────────────
-     CONTEXT COLLECTOR
-     Reads live app state to give Xīnlì situational awareness
-  ──────────────────────────────────────────────────────── */
-  function _ctx() {
-    var c = { tab: _currentTab };
-
-    try {
-      if (typeof currentLesson !== 'undefined')  c.lesson       = currentLesson;
-      if (typeof learnedWords  !== 'undefined')  c.learnedCount = learnedWords.size;
-      if (typeof currentLang   !== 'undefined')  c.lang         = currentLang;
-      if (typeof userProgress  !== 'undefined' && userProgress.stats)
-        c.xp = userProgress.stats.xp || 0;
-
-      // Visible Chinese characters on screen
-      var zhs = document.querySelectorAll(
-        '.vch,.vc-zh,.dl-zh,.si-zh,.rsh-wod-zh,.sent-zh,.fc-zh,.gram-ex .ex-zh,.rsh-wod-zh'
-      );
-      var words = [];
-      zhs.forEach(function(el) {
-        var t = (el.textContent || '').trim();
-        if (t && t.length <= 6 && words.indexOf(t) === -1) words.push(t);
-      });
-      if (words.length) c.visibleWords = words.slice(0, 12);
-
-      // Current topic title
-      var topicEl = document.querySelector(
-        '.topic-ar-title,.tph-txt h2,.rsh-page-title,.rsh-section-title'
-      );
-      if (topicEl) c.lessonTopic = (topicEl.textContent || '').trim().slice(0, 60);
-    } catch (e) { /* silent */ }
-
-    return c;
-  }
-
-  /* ────────────────────────────────────────────────────────
-     SUGGESTED PROMPTS  (context-aware quick chips)
-  ──────────────────────────────────────────────────────── */
-  var PROMPTS = {
-    home:       ['ما كلمة اليوم؟', 'كيف أبدأ تعلم الصينية؟', 'ما مستوى HSK 1؟', 'أعطيني نصيحة للحفظ'],
-    vocab:      ['اشرحي لي هذه الكلمة', 'كيف أنطق هذا الحرف؟', 'أعطيني جملة مثال', 'ما الفرق بين هذه الكلمات؟'],
-    grammar:    ['اشرحي هذه القاعدة بمثال', 'كيف أستخدم هذا التركيب؟', 'ما ترتيب الكلمات في الجملة الصينية؟'],
-    sentences:  ['ترجمي هذه الجملة', 'كيف أنطق هذه الجملة؟', 'اشرحي هذا الحوار', 'ما معنى هذا التعبير؟'],
-    bigexam:    ['ما أهم الكلمات للحفظ قبل الاختبار؟', 'ساعديني في الاستعداد', 'كيف أتحسن سريعاً؟'],
-    flashcards: ['ما أفضل طريقة لمراجعة البطاقات؟', 'ساعديني على تذكّر هذه الكلمة'],
-    tones:      ['اشرحي النغمات الأربع', 'كيف أميّز بين نغمتين متشابهتين؟', 'أعطيني أمثلة على النغمة الأولى'],
-    stories:    ['ساعديني في فهم هذه القصة', 'ما معنى هذه الجملة في القصة؟'],
-  };
-
-  function _getPrompts() { return PROMPTS[_currentTab] || PROMPTS.home; }
-
-  /* ────────────────────────────────────────────────────────
-     DOM HELPERS
-  ──────────────────────────────────────────────────────── */
-  function _el(id)  { return document.getElementById(id); }
-
-  function _escHtml(s) {
-    return String(s)
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  /* Light markdown: **bold**, `code`, newlines */
-  function _fmt(text) {
-    return _escHtml(text)
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/`([^`]+)`/g, '<code class="xinli-code">$1</code>')
-      .replace(/\n/g, '<br>');
-  }
-
-  /* ────────────────────────────────────────────────────────
-     MASCOT SVG  (tiny face, used inside bubbles)
-  ──────────────────────────────────────────────────────── */
-  var MASCOT_SVG =
-    '<svg width="24" height="24" viewBox="130 200 140 130" xmlns="http://www.w3.org/2000/svg">' +
-      '<ellipse cx="200" cy="262" rx="56" ry="62" fill="#F4C5A0"/>' +
-      '<ellipse cx="200" cy="222" rx="58" ry="36" fill="#1a1010"/>' +
-      '<ellipse cx="200" cy="228" rx="56" ry="22" fill="#1a1010"/>' +
-      '<ellipse cx="182" cy="255" rx="15" ry="17" fill="white"/>' +
-      '<ellipse cx="182" cy="256" rx="6.5" ry="8" fill="#2c1010"/>' +
-      '<ellipse cx="177" cy="251" rx="3" ry="3" fill="white"/>' +
-      '<ellipse cx="218" cy="255" rx="15" ry="17" fill="white"/>' +
-      '<ellipse cx="218" cy="256" rx="6.5" ry="8" fill="#2c1010"/>' +
-      '<ellipse cx="213" cy="251" rx="3" ry="3" fill="white"/>' +
-      '<ellipse cx="162" cy="271" rx="11" ry="6" fill="#f08070" opacity="0.5"/>' +
-      '<ellipse cx="238" cy="271" rx="11" ry="6" fill="#f08070" opacity="0.5"/>' +
-      '<path d="M186 290 Q200 300 214 290" fill="none" stroke="#c06050" stroke-width="2.2" stroke-linecap="round"/>' +
-    '</svg>';
-
-  /* ────────────────────────────────────────────────────────
-     RENDER MESSAGES
-  ──────────────────────────────────────────────────────── */
-  function _renderMsg(msg) {
-    var wrap = document.createElement('div');
-    wrap.className = 'xinli-msg xinli-msg-' + msg.role;
-
-    if (msg.role === 'assistant') {
-      wrap.innerHTML =
-        '<div class="xinli-avatar">' + MASCOT_SVG + '</div>' +
-        '<div class="xinli-bubble xinli-bubble-ai">' + _fmt(msg.content) + '</div>';
-    } else {
-      wrap.innerHTML =
-        '<div class="xinli-bubble xinli-bubble-user">' + _escHtml(msg.content) + '</div>';
-    }
-    return wrap;
-  }
-
-  function _appendMsg(msg) {
-    var c = _el('chili-messages');
-    if (!c) return;
-    c.appendChild(_renderMsg(msg));
-    c.scrollTop = c.scrollHeight;
-  }
-
-  /* ────────────────────────────────────────────────────────
-     TYPING INDICATOR
-  ──────────────────────────────────────────────────────── */
-  var _typingEl = null;
-
-  function _showTyping() {
-    var c = _el('chili-messages');
-    if (!c) return;
-    _typingEl = document.createElement('div');
-    _typingEl.className = 'xinli-msg xinli-msg-assistant xinli-typing-row';
-    _typingEl.innerHTML =
-      '<div class="xinli-avatar">' + MASCOT_SVG + '</div>' +
-      '<div class="xinli-bubble xinli-bubble-ai xinli-typing">' +
-        '<span class="xinli-dot"></span>' +
-        '<span class="xinli-dot"></span>' +
-        '<span class="xinli-dot"></span>' +
-      '</div>';
-    c.appendChild(_typingEl);
-    c.scrollTop = c.scrollHeight;
-  }
-
-  function _hideTyping() {
-    if (_typingEl && _typingEl.parentNode) {
-      _typingEl.parentNode.removeChild(_typingEl);
-      _typingEl = null;
-    }
-  }
-
-  /* ────────────────────────────────────────────────────────
-     SUGGESTIONS CHIPS
-  ──────────────────────────────────────────────────────── */
-  function _renderSuggestions() {
-    var chips = _el('chili-chips');
-    var sugg  = _el('chili-suggestions');
-    if (!chips) return;
-
-    chips.innerHTML = _getPrompts().map(function(p) {
-      return '<button class="xinli-chip" onclick="XinliAssistant.sendQuick(\'' +
-        p.replace(/'/g, "\\'") + '\')">' + _escHtml(p) + '</button>';
-    }).join('');
-
-    if (sugg) sugg.style.display = _messages.length <= 1 ? '' : 'none';
-  }
-
-  /* ────────────────────────────────────────────────────────
-     WELCOME MESSAGE
-  ──────────────────────────────────────────────────────── */
-  function _showWelcome() {
-    var c = _el('chili-messages');
-    if (!c) return;
-    c.innerHTML = '';
-    var wc = typeof learnedWords !== 'undefined' ? learnedWords.size : 0;
-
-    var welcomes = [
-      'أهلاً وسهلاً! أنا **شينلي Xīnlì** (心力 — قوة القلب والعقل) 🌸\n\nأنا مساعدتك في رحلة تعلم الصينية. اسأليني عن أي كلمة أو قاعدة أو درس!',
-      'مرحباً! أنا **شينلي** 心力، مساعدتك الذكية لتعلم الصينية 🎋\n\nيمكنك سؤالي عن أي شيء في منهج HSK 1 — مفردات، قواعد، جمل، أو أسلوب حفظ!',
-    ];
-    if (wc > 0) {
-      welcomes.push('أهلاً! أنا **شينلي Xīnlì** 🌺\nتعلّمتَ حتى الآن **' + wc + ' كلمة** — رائع! كيف يمكنني مساعدتك اليوم؟');
-    }
-
-    var welcome = welcomes[Math.floor(Math.random() * welcomes.length)];
-    _messages = [{ role: 'assistant', content: welcome }];
-    _appendMsg(_messages[0]);
-    _renderSuggestions();
-  }
-
-  /* ────────────────────────────────────────────────────────
-     OPEN / CLOSE
-  ──────────────────────────────────────────────────────── */
-  function open() {
-    if (_open) return;
-    _open = true;
-
-    var panel    = _el('chili-panel');
-    var backdrop = _el('chili-backdrop');
-    var btn      = _el('chili-btn');
-    var dot      = _el('chili-dot');
-
-    if (panel)    panel.classList.add('xinli-open');
-    if (backdrop) backdrop.classList.add('xinli-backdrop-visible');
-    if (btn)      btn.classList.add('xinli-btn-active');
-    if (dot)      dot.style.display = 'none';
-
-    document.body.style.overflow = 'hidden';
-
-    // Render welcome on first open
-    var c = _el('chili-messages');
-    if (c && c.children.length === 0) _showWelcome();
-
-    // Focus input
-    setTimeout(function() {
-      var inp = _el('chili-input');
-      if (inp) inp.focus();
-    }, 300);
-  }
-
-  function close() {
-    if (!_open) return;
-    _open = false;
-
-    var panel    = _el('chili-panel');
-    var backdrop = _el('chili-backdrop');
-    var btn      = _el('chili-btn');
-
-    if (panel)    panel.classList.remove('xinli-open');
-    if (backdrop) backdrop.classList.remove('xinli-backdrop-visible');
-    if (btn)      btn.classList.remove('xinli-btn-active');
-
-    document.body.style.overflow = '';
-  }
-
-  /* ────────────────────────────────────────────────────────
-     CLEAR HISTORY
-  ──────────────────────────────────────────────────────── */
-  function clearHistory() {
-    _messages = [];
-    var c = _el('chili-messages');
-    if (c) c.innerHTML = '';
-    _showWelcome();
-  }
-
-  /* ────────────────────────────────────────────────────────
-     SEND MESSAGE
-  ──────────────────────────────────────────────────────── */
-  function send() {
-    if (_loading) return;
-
-    var inp  = _el('chili-input');
-    var text = inp ? inp.value.trim() : '';
-    if (!text) return;
-
-    // Clear input
-    if (inp) { inp.value = ''; inp.style.height = ''; }
-    _setSendState(false);
-
-    // Add user message
-    var userMsg = { role: 'user', content: text };
-    _messages.push(userMsg);
-    _appendMsg(userMsg);
-
-    // Hide suggestions once user has spoken
-    var sugg = _el('chili-suggestions');
-    if (sugg) sugg.style.display = 'none';
-
-    _callAPI();
-  }
-
-  function sendQuick(text) {
-    var inp = _el('chili-input');
-    if (inp) inp.value = text;
-    send();
-  }
-
-  /* ────────────────────────────────────────────────────────
-     API CALL — goes to our secure Netlify function
-  ──────────────────────────────────────────────────────── */
-  function _callAPI() {
-    _loading = true;
-    _setStatus('شينلي تفكّر... 💭');
-    _showTyping();
-
-    // Only send last 10 messages to keep context window small
-    var payload = {
-      messages: _messages.slice(-10),
-      context:  _ctx(),
+  <!-- ======================================================
+       SCRIPTS
+  ======================================================= -->
+  <script src="data/full_dict.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- Splash screen dismiss -->
+  <script>
+    (function () {
+      var splash = document.getElementById('splash');
+      if (!splash) return;
+      var dismiss = function () {
+        splash.classList.add('hide');
+        setTimeout(function () {
+          if (splash.parentNode) splash.parentNode.removeChild(splash);
+        }, 700);
+      };
+      setTimeout(dismiss, 2400);
+    })();
+  </script>
+
+  <!-- ======================================================
+       XINLI ASSISTANT MODULE
+       Calls /.netlify/functions/xinli — API key stays server-side
+  ======================================================= -->
+  <script>
+  var XinliAssistant = (function () {
+    'use strict';
+
+    /* ── State ── */
+    var _isOpen    = false;
+    var _isLoading = false;
+    var _messages  = [];          // { role:'user'|'assistant', content:string }[]
+    var _currentTab = 'home';
+
+    /* ── Suggestion prompts per section ── */
+    var PROMPTS = {
+      home:       ['كيف أبدأ تعلم الصينية؟', 'ما هو مستوى HSK 1؟', 'أعطيني نصيحة للحفظ'],
+      vocab:      ['اشرحي لي هذه الكلمة', 'كيف أنطق هذا الحرف؟', 'أعطيني جملة مثال', 'ما الفرق بين هذه الكلمات؟'],
+      grammar:    ['اشرحي هذه القاعدة بمثال', 'كيف أستخدم هذا التركيب؟', 'ما ترتيب الكلمات في الصينية؟'],
+      sentences:  ['ترجمي هذه الجملة', 'كيف أنطق هذه الجملة؟', 'اشرحي هذا الحوار'],
+      bigexam:    ['ما أهم الكلمات للاختبار؟', 'ساعديني في الاستعداد', 'كيف أتحسن بسرعة؟'],
+      flashcards: ['ما أفضل طريقة للمراجعة بالبطاقات؟', 'ساعديني على تذكّر هذه الكلمة'],
+      tones:      ['اشرحي النغمات الأربع', 'كيف أميّز بين النغمة الأولى والثانية؟'],
+      stories:    ['ساعديني في فهم هذه القصة', 'ما معنى هذه الجملة؟'],
+      translator: ['كيف أستخدم المترجم؟', 'ما معنى هذه الكلمة؟'],
+      review:     ['ما الكلمات التي يجب أن أراجعها؟', 'ساعديني في مراجعة اليوم'],
     };
 
-    fetch('/.netlify/functions/xinli', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(payload),
-    })
-    .then(function(res) { return res.json(); })
-    .then(function(data) {
-      _hideTyping();
-      _loading = false;
-      _setSendState(false);
-      _setStatus('مساعدتك في تعلم الصينية ✨');
+    var MASCOT_SVG_SM =
+      '<svg width="22" height="22" viewBox="0 0 70 70" xmlns="http://www.w3.org/2000/svg">' +
+        '<ellipse cx="35" cy="27" rx="15" ry="16" fill="#F4C5A0"/>' +
+        '<ellipse cx="35" cy="17" rx="16" ry="10" fill="#1a1010"/>' +
+        '<path d="M20 13 Q35 7 50 13" fill="none" stroke="#e74c3c" stroke-width="2" stroke-linecap="round"/>' +
+        '<ellipse cx="29" cy="27" rx="4" ry="4.5" fill="white"/>' +
+        '<ellipse cx="41" cy="27" rx="4" ry="4.5" fill="white"/>' +
+        '<ellipse cx="29" cy="28" rx="2.5" ry="3" fill="#1a1010"/>' +
+        '<ellipse cx="41" cy="28" rx="2.5" ry="3" fill="#1a1010"/>' +
+        '<circle cx="30" cy="26" r="1" fill="white"/>' +
+        '<circle cx="42" cy="26" r="1" fill="white"/>' +
+        '<ellipse cx="22" cy="32" rx="3.5" ry="2" fill="#f08070" opacity="0.5"/>' +
+        '<ellipse cx="48" cy="32" rx="3.5" ry="2" fill="#f08070" opacity="0.5"/>' +
+        '<path d="M28 38 Q35 43 42 38" fill="none" stroke="#c06050" stroke-width="1.5" stroke-linecap="round"/>' +
+      '</svg>';
 
-      if (data.error) {
-        var errMsg = { role: 'assistant', content: '⚠️ ' + data.error };
-        _messages.push(errMsg);
-        _appendMsg(errMsg);
-        return;
+    /* ── DOM helpers ── */
+    function $id(id) { return document.getElementById(id); }
+
+    function escHtml(s) {
+      return String(s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    /* Light markdown rendering: **bold**, `code`, newlines */
+    function fmt(text) {
+      return escHtml(text)
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`([^`]+)`/g, '<code class="xinli-inline-code">$1</code>')
+        .replace(/\n/g, '<br>');
+    }
+
+    /* ── Read live app context ── */
+    function getCtx() {
+      var ctx = { tab: _currentTab };
+      try {
+        if (typeof currentLesson  !== 'undefined') ctx.lesson       = currentLesson;
+        if (typeof learnedWords   !== 'undefined') ctx.learnedCount = learnedWords.size;
+        if (typeof currentLang    !== 'undefined') ctx.lang         = currentLang;
+        if (typeof userProgress   !== 'undefined' && userProgress.stats)
+          ctx.xp = userProgress.stats.xp || 0;
+
+        // Collect visible Chinese text from the current screen
+        var zhEls = document.querySelectorAll(
+          '.vch,.bwc-zh,.dl-zh,.sent-zh,.fc-zh,.sent-py,.wod-zh,.story-line-zh'
+        );
+        var seen = [];
+        zhEls.forEach(function(el) {
+          var t = (el.textContent || '').trim();
+          if (t && t.length <= 6 && seen.indexOf(t) < 0) seen.push(t);
+        });
+        if (seen.length) ctx.visibleWords = seen.slice(0, 10);
+
+        // Topic title
+        var titleEl = document.querySelector('.tph-txt h2, .page-header h2, .section-title');
+        if (titleEl) ctx.lessonTopic = (titleEl.textContent || '').trim().slice(0, 60);
+      } catch(e) { /* silent */ }
+      return ctx;
+    }
+
+    /* ── Render suggestion chips ── */
+    function renderSuggestions() {
+      var chips = $id('xinli-chips');
+      var sugg  = $id('xinli-suggestions');
+      if (!chips) return;
+
+      var prompts = PROMPTS[_currentTab] || PROMPTS.home;
+      chips.innerHTML = prompts.map(function(p) {
+        return '<button class="xinli-chip" onclick="XinliAssistant.sendQuick(\'' +
+          p.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\')">' + escHtml(p) + '</button>';
+      }).join('');
+
+      if (sugg) sugg.style.display = _messages.length <= 1 ? '' : 'none';
+    }
+
+    /* ── Render one message bubble ── */
+    function renderBubble(msg) {
+      var div = document.createElement('div');
+      div.className = 'xinli-msg xinli-msg-' + msg.role;
+      if (msg.role === 'assistant') {
+        div.innerHTML =
+          '<div class="xinli-bubble-avatar">' + MASCOT_SVG_SM + '</div>' +
+          '<div class="xinli-bubble xinli-bubble-ai">' + fmt(msg.content) + '</div>';
+      } else {
+        div.innerHTML =
+          '<div class="xinli-bubble xinli-bubble-user">' + escHtml(msg.content) + '</div>';
+      }
+      return div;
+    }
+
+    function appendBubble(msg) {
+      var c = $id('xinli-messages');
+      if (!c) return;
+      c.appendChild(renderBubble(msg));
+      c.scrollTop = c.scrollHeight;
+    }
+
+    /* ── Typing indicator ── */
+    var _typingEl = null;
+
+    function showTyping() {
+      var c = $id('xinli-messages');
+      if (!c) return;
+      _typingEl = document.createElement('div');
+      _typingEl.className = 'xinli-msg xinli-msg-assistant';
+      _typingEl.innerHTML =
+        '<div class="xinli-bubble-avatar">' + MASCOT_SVG_SM + '</div>' +
+        '<div class="xinli-bubble xinli-bubble-ai xinli-typing">' +
+          '<span class="xinli-dot"></span>' +
+          '<span class="xinli-dot"></span>' +
+          '<span class="xinli-dot"></span>' +
+        '</div>';
+      c.appendChild(_typingEl);
+      c.scrollTop = c.scrollHeight;
+    }
+
+    function hideTyping() {
+      if (_typingEl && _typingEl.parentNode) {
+        _typingEl.parentNode.removeChild(_typingEl);
+        _typingEl = null;
+      }
+    }
+
+    /* ── Welcome message ── */
+    function showWelcome() {
+      var c = $id('xinli-messages');
+      if (!c) return;
+      c.innerHTML = '';
+
+      var wc = typeof learnedWords !== 'undefined' ? learnedWords.size : 0;
+      var welcomes = [
+        'أهلاً! أنا **شينلي Xīnlì** (心力 — قوة القلب والعقل) 🌸\nأنا مساعدتك في تعلم الصينية. اسألني عن أي كلمة أو قاعدة أو درس!',
+        'مرحباً! أنا **شينلي** 心力، مساعدتك الذكية في Red Silk HSK 🎋\nيمكنك سؤالي عن المفردات والقواعد وطرق الحفظ!',
+      ];
+      if (wc > 0) {
+        welcomes.push('أهلاً! أنا **شينلي Xīnlì** 🌺\nتعلّمتَ **' + wc + ' كلمة** حتى الآن — رائع! كيف يمكنني مساعدتك اليوم؟');
       }
 
-      var reply = { role: 'assistant', content: data.reply };
-      _messages.push(reply);
-      _appendMsg(reply);
-    })
-    .catch(function(err) {
-      _hideTyping();
-      _loading = false;
-      _setStatus('مساعدتك في تعلم الصينية ✨');
-      _setSendState(false);
-      console.error('[Xinli] fetch error:', err);
-      var errMsg = { role: 'assistant', content: '⚠️ تعذّر الاتصال. تأكد من اتصالك بالإنترنت وحاول مجدداً.' };
-      _messages.push(errMsg);
-      _appendMsg(errMsg);
-    });
-  }
-
-  /* ────────────────────────────────────────────────────────
-     UI HELPERS
-  ──────────────────────────────────────────────────────── */
-  function _setStatus(text) {
-    var el = _el('chili-status');
-    if (el) el.textContent = text;
-  }
-
-  function _setSendState(enabled) {
-    var btn = _el('chili-send');
-    if (!btn) return;
-    btn.disabled = !enabled;
-  }
-
-  function handleKey(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (!_loading) send();
+      var welcome = welcomes[Math.floor(Math.random() * welcomes.length)];
+      _messages = [{ role: 'assistant', content: welcome }];
+      appendBubble(_messages[0]);
+      renderSuggestions();
     }
-  }
 
-  function autoResize(el) {
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-    _setSendState(el.value.trim().length > 0 && !_loading);
-  }
+    /* ── Open / Close ── */
+    function open() {
+      if (_isOpen) return;
+      _isOpen = true;
 
-  /* ────────────────────────────────────────────────────────
-     TAB CHANGE HOOK — update context when user navigates
-  ──────────────────────────────────────────────────────── */
-  (function _hookShowTab() {
-    var orig = window.showTab;
-    window.showTab = function(tabId) {
-      _currentTab = tabId || 'home';
-      if (typeof orig === 'function') orig(tabId);
-      // Re-render suggestion chips if panel is open
-      if (_open) _renderSuggestions();
+      var panel    = $id('xinli-panel');
+      var backdrop = $id('xinli-backdrop');
+      var fab      = $id('xinli-fab');
+      var dot      = $id('xinli-dot');
+
+      if (panel)    panel.classList.add('xinli-open');
+      if (backdrop) backdrop.classList.add('xinli-backdrop-show');
+      if (fab)      fab.classList.add('xinli-fab-active');
+      if (dot)      dot.style.display = 'none';
+
+      document.body.style.overflow = 'hidden';
+
+      // Show welcome only on first open
+      var msgs = $id('xinli-messages');
+      if (msgs && msgs.children.length === 0) showWelcome();
+
+      // Focus textarea after animation
+      setTimeout(function() {
+        var inp = $id('xinli-input');
+        if (inp) inp.focus();
+      }, 320);
+    }
+
+    function close() {
+      if (!_isOpen) return;
+      _isOpen = false;
+
+      var panel    = $id('xinli-panel');
+      var backdrop = $id('xinli-backdrop');
+      var fab      = $id('xinli-fab');
+
+      if (panel)    panel.classList.remove('xinli-open');
+      if (backdrop) backdrop.classList.remove('xinli-backdrop-show');
+      if (fab)      fab.classList.remove('xinli-fab-active');
+
+      document.body.style.overflow = '';
+    }
+
+    function clearHistory() {
+      _messages = [];
+      var c = $id('xinli-messages');
+      if (c) c.innerHTML = '';
+      showWelcome();
+    }
+
+    /* ── Send message ── */
+    function send() {
+      if (_isLoading) return;
+      var inp  = $id('xinli-input');
+      var text = inp ? inp.value.trim() : '';
+      if (!text) return;
+
+      if (inp) { inp.value = ''; inp.style.height = ''; }
+      setSendEnabled(false);
+
+      var userMsg = { role: 'user', content: text };
+      _messages.push(userMsg);
+      appendBubble(userMsg);
+
+      // Hide suggestions once conversation starts
+      var sugg = $id('xinli-suggestions');
+      if (sugg) sugg.style.display = 'none';
+
+      callAPI();
+    }
+
+    function sendQuick(text) {
+      var inp = $id('xinli-input');
+      if (inp) { inp.value = text; }
+      send();
+    }
+
+    /* ── API call (uses Netlify function — no key in browser) ── */
+    function callAPI() {
+      _isLoading = true;
+      setStatus('شينلي تفكّر... 💭');
+      showTyping();
+
+      var payload = {
+        messages: _messages.slice(-12),   // keep last 12 messages for context
+        context:  getCtx(),
+      };
+
+      fetch('/.netlify/functions/xinli', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+      })
+      .then(function(res) {
+        // Always parse JSON — even error responses come back as JSON from our function
+        return res.json().then(function(data) {
+          return { ok: res.ok, status: res.status, data: data };
+        });
+      })
+      .then(function(result) {
+        hideTyping();
+        _isLoading = false;
+        setSendEnabled(false);
+        setStatus('مساعدتك في تعلم الصينية ✨');
+
+        if (!result.ok || result.data.error) {
+          var errText = (result.data && result.data.error)
+            ? result.data.error
+            : 'حدث خطأ. يرجى المحاولة مجدداً.';
+          var errMsg = { role: 'assistant', content: '⚠️ ' + errText };
+          _messages.push(errMsg);
+          appendBubble(errMsg);
+          return;
+        }
+
+        var reply = { role: 'assistant', content: result.data.reply };
+        _messages.push(reply);
+        appendBubble(reply);
+      })
+      .catch(function(err) {
+        hideTyping();
+        _isLoading = false;
+        setSendEnabled(false);
+        setStatus('مساعدتك في تعلم الصينية ✨');
+        console.error('[Xinli] fetch error:', err);
+        var errMsg = {
+          role: 'assistant',
+          content: '⚠️ لم يتم الاتصال بالخادم. يرجى التحقق من الاتصال والمحاولة مجدداً.'
+        };
+        _messages.push(errMsg);
+        appendBubble(errMsg);
+      });
+    }
+
+    /* ── UI helpers ── */
+    function setStatus(text) {
+      var el = $id('xinli-status');
+      if (el) el.textContent = text;
+    }
+
+    function setSendEnabled(enabled) {
+      var btn = $id('xinli-send');
+      if (btn) btn.disabled = !enabled;
+    }
+
+    function handleKey(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (!_isLoading) send();
+      }
+    }
+
+    function autoResize(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 130) + 'px';
+      setSendEnabled(el.value.trim().length > 0 && !_isLoading);
+    }
+
+    /* ── Hook into showTab to update context ── */
+    (function hookShowTab() {
+      var orig = window.showTab;
+      window.showTab = function(tabId) {
+        _currentTab = tabId || 'home';
+        if (typeof orig === 'function') orig(tabId);
+        if (_isOpen) renderSuggestions();
+      };
+    })();
+
+    /* ── Escape key closes panel ── */
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && _isOpen) close();
+    });
+
+    /* ── Public API ── */
+    return {
+      open:         open,
+      close:        close,
+      send:         send,
+      sendQuick:    sendQuick,
+      handleKey:    handleKey,
+      autoResize:   autoResize,
+      clearHistory: clearHistory,
     };
-  })();
 
-  /* ────────────────────────────────────────────────────────
-     KEYBOARD ESCAPE TO CLOSE
-  ──────────────────────────────────────────────────────── */
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && _open) close();
-  });
-
-  /* ────────────────────────────────────────────────────────
-     PUBLIC API
-  ──────────────────────────────────────────────────────── */
-  return { open: open, close: close, send: send, sendQuick: sendQuick,
-           handleKey: handleKey, autoResize: autoResize, clearHistory: clearHistory };
-
-}());
-</script>
+  }());
+  </script>
 
 </body>
 </html>
