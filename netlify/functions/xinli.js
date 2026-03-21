@@ -119,13 +119,13 @@ exports.handler = async function (event) {
   }
 
   // ── Call Gemini API ────────────────────────────────────────────────────
-  // Using gemini-1.5-flash: best free-tier quota, fast, supports Arabic well.
+  // Using gemini-2.0-flash-lite: fully supported on v1beta, highest free-tier QPM.
   // If you want to try other models, options are:
-  //   gemini-1.5-flash        ← recommended (most quota on free tier)
+  //   gemini-2.0-flash-lite   ← CURRENT: highest free quota, v1beta supported
   //   gemini-1.5-flash-8b     ← even higher quota limits
   //   gemini-1.5-pro          ← better quality, lower quota
   //   gemini-2.0-flash        ← newest, but lower free quota
-  const MODEL = 'gemini-1.5-flash';
+  const MODEL = 'gemini-2.0-flash-lite';
   const GEMINI_URL =
     'https://generativelanguage.googleapis.com/v1beta/models/' + MODEL + ':generateContent?key=' + API_KEY;
 
