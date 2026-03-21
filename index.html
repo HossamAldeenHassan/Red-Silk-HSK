@@ -340,13 +340,20 @@
   var XinliAssistant = (function () {
     'use strict';
 
-    /* ── State ── */
-    var _isOpen    = false;
-    var _isLoading = false;
-    var _messages  = [];          // { role:'user'|'assistant', content:string }[]
-    var _currentTab = 'home';
+    /* ─────────────────────────────────────────────────────────
+       STATE
+    ───────────────────────────────────────────────────────── */
+    var _isOpen       = false;
+    var _isLoading    = false;
+    var _inCooldown   = false;   // true while rate-limit cooldown is active
+    var _cooldownSecs = 0;       // remaining cooldown seconds
+    var _cooldownInt  = null;    // setInterval handle
+    var _messages     = [];      // { role:'user'|'assistant', content:string }[]
+    var _currentTab   = 'home';
 
-    /* ── Suggestion prompts per section ── */
+    /* ─────────────────────────────────────────────────────────
+       SUGGESTION PROMPTS (per section)
+    ───────────────────────────────────────────────────────── */
     var PROMPTS = {
       home:       ['كيف أبدأ تعلم الصينية؟', 'ما هو مستوى HSK 1؟', 'أعطيني نصيحة للحفظ'],
       vocab:      ['اشرحي لي هذه الكلمة', 'كيف أنطق هذا الحرف؟', 'أعطيني جملة مثال', 'ما الفرق بين هذه الكلمات؟'],
@@ -376,7 +383,9 @@
         '<path d="M28 38 Q35 43 42 38" fill="none" stroke="#c06050" stroke-width="1.5" stroke-linecap="round"/>' +
       '</svg>';
 
-    /* ── DOM helpers ── */
+    /* ─────────────────────────────────────────────────────────
+       DOM HELPERS
+    ───────────────────────────────────────────────────────── */
     function $id(id) { return document.getElementById(id); }
 
     function escHtml(s) {
@@ -385,7 +394,6 @@
         .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
-    /* Light markdown rendering: **bold**, `code`, newlines */
     function fmt(text) {
       return escHtml(text)
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -393,7 +401,9 @@
         .replace(/\n/g, '<br>');
     }
 
-    /* ── Read live app context ── */
+    /* ─────────────────────────────────────────────────────────
+       CONTEXT COLLECTOR
+    ───────────────────────────────────────────────────────── */
     function getCtx() {
       var ctx = { tab: _currentTab };
       try {
@@ -402,41 +412,81 @@
         if (typeof currentLang    !== 'undefined') ctx.lang         = currentLang;
         if (typeof userProgress   !== 'undefined' && userProgress.stats)
           ctx.xp = userProgress.stats.xp || 0;
-
-        // Collect visible Chinese text from the current screen
-        var zhEls = document.querySelectorAll(
-          '.vch,.bwc-zh,.dl-zh,.sent-zh,.fc-zh,.sent-py,.wod-zh,.story-line-zh'
-        );
+        var zhEls = document.querySelectorAll('.vch,.bwc-zh,.dl-zh,.sent-zh,.fc-zh,.wod-zh,.story-line-zh');
         var seen = [];
         zhEls.forEach(function(el) {
           var t = (el.textContent || '').trim();
           if (t && t.length <= 6 && seen.indexOf(t) < 0) seen.push(t);
         });
         if (seen.length) ctx.visibleWords = seen.slice(0, 10);
-
-        // Topic title
-        var titleEl = document.querySelector('.tph-txt h2, .page-header h2, .section-title');
+        var titleEl = document.querySelector('.tph-txt h2,.page-header h2,.section-title');
         if (titleEl) ctx.lessonTopic = (titleEl.textContent || '').trim().slice(0, 60);
       } catch(e) { /* silent */ }
       return ctx;
     }
 
-    /* ── Render suggestion chips ── */
+    /* ─────────────────────────────────────────────────────────
+       COOLDOWN — triggered after 429 rate-limit response
+       Disables send & chips for COOLDOWN_SECS seconds,
+       shows a live countdown in the status bar.
+    ───────────────────────────────────────────────────────── */
+    var COOLDOWN_SECS = 30;
+
+    function startCooldown() {
+      _inCooldown   = true;
+      _cooldownSecs = COOLDOWN_SECS;
+
+      setChipsDisabled(true);
+      setSendEnabled(false);
+
+      // Tick every second
+      _cooldownInt = setInterval(function () {
+        _cooldownSecs -= 1;
+        if (_cooldownSecs <= 0) {
+          // Cooldown finished
+          clearInterval(_cooldownInt);
+          _cooldownInt = null;
+          _inCooldown  = false;
+          setStatus('مساعدتك في تعلم الصينية ✨');
+          setChipsDisabled(false);
+          // Re-enable send only if textarea has text
+          var inp = $id('xinli-input');
+          setSendEnabled(inp && inp.value.trim().length > 0);
+        } else {
+          setStatus('⏳ يرجى الانتظار ' + _cooldownSecs + ' ثانية...');
+        }
+      }, 1000);
+
+      setStatus('⏳ يرجى الانتظار ' + _cooldownSecs + ' ثانية...');
+    }
+
+    function setChipsDisabled(disabled) {
+      var chips = document.querySelectorAll('.xinli-chip');
+      chips.forEach(function(c) {
+        c.disabled  = disabled;
+        c.style.opacity     = disabled ? '0.45' : '';
+        c.style.pointerEvents = disabled ? 'none' : '';
+      });
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       SUGGESTIONS
+    ───────────────────────────────────────────────────────── */
     function renderSuggestions() {
       var chips = $id('xinli-chips');
       var sugg  = $id('xinli-suggestions');
       if (!chips) return;
-
       var prompts = PROMPTS[_currentTab] || PROMPTS.home;
       chips.innerHTML = prompts.map(function(p) {
         return '<button class="xinli-chip" onclick="XinliAssistant.sendQuick(\'' +
-          p.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\')">' + escHtml(p) + '</button>';
+          p.replace(/\\/g,'\\\\').replace(/'/g,'\\\'') + '\')">' + escHtml(p) + '</button>';
       }).join('');
-
       if (sugg) sugg.style.display = _messages.length <= 1 ? '' : 'none';
     }
 
-    /* ── Render one message bubble ── */
+    /* ─────────────────────────────────────────────────────────
+       MESSAGE BUBBLES
+    ───────────────────────────────────────────────────────── */
     function renderBubble(msg) {
       var div = document.createElement('div');
       div.className = 'xinli-msg xinli-msg-' + msg.role;
@@ -458,7 +508,9 @@
       c.scrollTop = c.scrollHeight;
     }
 
-    /* ── Typing indicator ── */
+    /* ─────────────────────────────────────────────────────────
+       TYPING INDICATOR
+    ───────────────────────────────────────────────────────── */
     var _typingEl = null;
 
     function showTyping() {
@@ -484,49 +536,44 @@
       }
     }
 
-    /* ── Welcome message ── */
+    /* ─────────────────────────────────────────────────────────
+       WELCOME MESSAGE
+    ───────────────────────────────────────────────────────── */
     function showWelcome() {
       var c = $id('xinli-messages');
       if (!c) return;
       c.innerHTML = '';
-
       var wc = typeof learnedWords !== 'undefined' ? learnedWords.size : 0;
       var welcomes = [
         'أهلاً! أنا **شينلي Xīnlì** (心力 — قوة القلب والعقل) 🌸\nأنا مساعدتك في تعلم الصينية. اسألني عن أي كلمة أو قاعدة أو درس!',
         'مرحباً! أنا **شينلي** 心力، مساعدتك الذكية في Red Silk HSK 🎋\nيمكنك سؤالي عن المفردات والقواعد وطرق الحفظ!',
       ];
       if (wc > 0) {
-        welcomes.push('أهلاً! أنا **شينلي Xīnlì** 🌺\nتعلّمتَ **' + wc + ' كلمة** حتى الآن — رائع! كيف يمكنني مساعدتك اليوم؟');
+        welcomes.push('أهلاً! أنا **شينلي Xīnlì** 🌺\nتعلّمتَ **' + wc + ' كلمة** حتى الآن — رائع! كيف يمكنني مساعدتك اليوم?');
       }
-
       var welcome = welcomes[Math.floor(Math.random() * welcomes.length)];
       _messages = [{ role: 'assistant', content: welcome }];
       appendBubble(_messages[0]);
       renderSuggestions();
     }
 
-    /* ── Open / Close ── */
+    /* ─────────────────────────────────────────────────────────
+       OPEN / CLOSE
+    ───────────────────────────────────────────────────────── */
     function open() {
       if (_isOpen) return;
       _isOpen = true;
-
       var panel    = $id('xinli-panel');
       var backdrop = $id('xinli-backdrop');
       var fab      = $id('xinli-fab');
       var dot      = $id('xinli-dot');
-
       if (panel)    panel.classList.add('xinli-open');
       if (backdrop) backdrop.classList.add('xinli-backdrop-show');
       if (fab)      fab.classList.add('xinli-fab-active');
       if (dot)      dot.style.display = 'none';
-
       document.body.style.overflow = 'hidden';
-
-      // Show welcome only on first open
       var msgs = $id('xinli-messages');
       if (msgs && msgs.children.length === 0) showWelcome();
-
-      // Focus textarea after animation
       setTimeout(function() {
         var inp = $id('xinli-input');
         if (inp) inp.focus();
@@ -536,32 +583,41 @@
     function close() {
       if (!_isOpen) return;
       _isOpen = false;
-
       var panel    = $id('xinli-panel');
       var backdrop = $id('xinli-backdrop');
       var fab      = $id('xinli-fab');
-
       if (panel)    panel.classList.remove('xinli-open');
       if (backdrop) backdrop.classList.remove('xinli-backdrop-show');
       if (fab)      fab.classList.remove('xinli-fab-active');
-
       document.body.style.overflow = '';
     }
 
     function clearHistory() {
-      _messages = [];
+      // Clear cooldown if active before resetting
+      if (_cooldownInt) { clearInterval(_cooldownInt); _cooldownInt = null; }
+      _inCooldown = false;
+      _isLoading  = false;
+      _messages   = [];
       var c = $id('xinli-messages');
       if (c) c.innerHTML = '';
+      setStatus('مساعدتك في تعلم الصينية ✨');
+      setChipsDisabled(false);
+      setSendEnabled(false);
       showWelcome();
     }
 
-    /* ── Send message ── */
+    /* ─────────────────────────────────────────────────────────
+       SEND  — guarded against double-fire, loading, and cooldown
+    ───────────────────────────────────────────────────────── */
     function send() {
-      if (_isLoading) return;
+      // Hard guards — prevent any duplicate or premature requests
+      if (_isLoading || _inCooldown) return;
+
       var inp  = $id('xinli-input');
       var text = inp ? inp.value.trim() : '';
       if (!text) return;
 
+      // Clear input immediately so the user can't re-send by pressing Enter again
       if (inp) { inp.value = ''; inp.style.height = ''; }
       setSendEnabled(false);
 
@@ -569,7 +625,6 @@
       _messages.push(userMsg);
       appendBubble(userMsg);
 
-      // Hide suggestions once conversation starts
       var sugg = $id('xinli-suggestions');
       if (sugg) sugg.style.display = 'none';
 
@@ -577,19 +632,23 @@
     }
 
     function sendQuick(text) {
+      // Quick chips also respect the loading/cooldown guard
+      if (_isLoading || _inCooldown) return;
       var inp = $id('xinli-input');
-      if (inp) { inp.value = text; }
+      if (inp) inp.value = text;
       send();
     }
 
-    /* ── API call (uses Netlify function — no key in browser) ── */
+    /* ─────────────────────────────────────────────────────────
+       API CALL — one request at a time, full error handling
+    ───────────────────────────────────────────────────────── */
     function callAPI() {
       _isLoading = true;
       setStatus('شينلي تفكّر... 💭');
       showTyping();
 
       var payload = {
-        messages: _messages.slice(-12),   // keep last 12 messages for context
+        messages: _messages.slice(-12),
         context:  getCtx(),
       };
 
@@ -599,47 +658,62 @@
         body:    JSON.stringify(payload),
       })
       .then(function(res) {
-        // Always parse JSON — even error responses come back as JSON from our function
         return res.json().then(function(data) {
-          return { ok: res.ok, status: res.status, data: data };
+          return { status: res.status, data: data };
         });
       })
       .then(function(result) {
         hideTyping();
         _isLoading = false;
-        setSendEnabled(false);
-        setStatus('مساعدتك في تعلم الصينية ✨');
 
-        if (!result.ok || result.data.error) {
-          var errText = (result.data && result.data.error)
-            ? result.data.error
-            : 'حدث خطأ. يرجى المحاولة مجدداً.';
-          var errMsg = { role: 'assistant', content: '⚠️ ' + errText };
-          _messages.push(errMsg);
-          appendBubble(errMsg);
+        /* ── Rate limit: start cooldown, show friendly message ── */
+        if (result.status === 429 || result.data.error === 'rate_limited') {
+          var rlMsg = {
+            role: 'assistant',
+            content: '⏳ وصلنا للحد الأقصى من الطلبات المسموح بها.\n' +
+                     'سأكون جاهزة مجدداً خلال **30 ثانية** — اصبر قليلاً! 😊'
+          };
+          _messages.push(rlMsg);
+          appendBubble(rlMsg);
+          startCooldown();
           return;
         }
 
+        /* ── Other errors ── */
+        if (result.data.error) {
+          var errMsg = { role: 'assistant', content: '⚠️ ' + result.data.error };
+          _messages.push(errMsg);
+          appendBubble(errMsg);
+          setStatus('مساعدتك في تعلم الصينية ✨');
+          setSendEnabled(false);
+          return;
+        }
+
+        /* ── Success ── */
         var reply = { role: 'assistant', content: result.data.reply };
         _messages.push(reply);
         appendBubble(reply);
+        setStatus('مساعدتك في تعلم الصينية ✨');
+        setSendEnabled(false);
       })
       .catch(function(err) {
         hideTyping();
         _isLoading = false;
-        setSendEnabled(false);
         setStatus('مساعدتك في تعلم الصينية ✨');
+        setSendEnabled(false);
         console.error('[Xinli] fetch error:', err);
         var errMsg = {
           role: 'assistant',
-          content: '⚠️ لم يتم الاتصال بالخادم. يرجى التحقق من الاتصال والمحاولة مجدداً.'
+          content: '⚠️ تعذّر الاتصال بالخادم. تحقق من اتصالك بالإنترنت وحاول مجدداً.'
         };
         _messages.push(errMsg);
         appendBubble(errMsg);
       });
     }
 
-    /* ── UI helpers ── */
+    /* ─────────────────────────────────────────────────────────
+       UI HELPERS
+    ───────────────────────────────────────────────────────── */
     function setStatus(text) {
       var el = $id('xinli-status');
       if (el) el.textContent = text;
@@ -647,23 +721,27 @@
 
     function setSendEnabled(enabled) {
       var btn = $id('xinli-send');
-      if (btn) btn.disabled = !enabled;
+      if (!btn) return;
+      btn.disabled = !enabled;
     }
 
     function handleKey(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        if (!_isLoading) send();
+        if (!_isLoading && !_inCooldown) send();
       }
     }
 
     function autoResize(el) {
       el.style.height = 'auto';
       el.style.height = Math.min(el.scrollHeight, 130) + 'px';
-      setSendEnabled(el.value.trim().length > 0 && !_isLoading);
+      // Only enable send if not loading, not in cooldown, and there is text
+      setSendEnabled(el.value.trim().length > 0 && !_isLoading && !_inCooldown);
     }
 
-    /* ── Hook into showTab to update context ── */
+    /* ─────────────────────────────────────────────────────────
+       TAB CHANGE HOOK
+    ───────────────────────────────────────────────────────── */
     (function hookShowTab() {
       var orig = window.showTab;
       window.showTab = function(tabId) {
@@ -673,12 +751,14 @@
       };
     })();
 
-    /* ── Escape key closes panel ── */
+    /* Escape closes panel */
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape' && _isOpen) close();
     });
 
-    /* ── Public API ── */
+    /* ─────────────────────────────────────────────────────────
+       PUBLIC API
+    ───────────────────────────────────────────────────────── */
     return {
       open:         open,
       close:        close,
