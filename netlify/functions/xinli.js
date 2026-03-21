@@ -5,6 +5,10 @@
  * Secure Gemini API proxy.
  * GEMINI_API_KEY is read ONLY from Netlify environment variables.
  * It never appears in any frontend code or response body.
+ *
+ * FIX: The frontend includes the assistant welcome message at index 0.
+ * Gemini requires conversations to start with role:'user', so we strip
+ * any leading model/assistant messages before forwarding to Gemini.
  */
 
 exports.handler = async function (event) {
@@ -53,61 +57,72 @@ exports.handler = async function (event) {
       tones: 'النغمات', review: 'المراجعة', translator: 'المترجم',
     };
     const lines = [];
-    if (ctx.tab)          lines.push(`الصفحة: ${TAB[ctx.tab] || ctx.tab}`);
-    if (ctx.lesson)       lines.push(`الدرس رقم: ${ctx.lesson}`);
-    if (ctx.lessonTopic)  lines.push(`موضوع الدرس: ${ctx.lessonTopic}`);
-    if (ctx.learnedCount) lines.push(`كلمات محفوظة: ${ctx.learnedCount}`);
-    if (ctx.xp)           lines.push(`نقاط XP: ${ctx.xp}`);
-    if (ctx.lang)         lines.push(`لغة الواجهة: ${ctx.lang === 'ar' ? 'العربية' : 'English'}`);
+    if (ctx.tab)          lines.push('الصفحة: ' + (TAB[ctx.tab] || ctx.tab));
+    if (ctx.lesson)       lines.push('الدرس رقم: ' + ctx.lesson);
+    if (ctx.lessonTopic)  lines.push('موضوع الدرس: ' + ctx.lessonTopic);
+    if (ctx.learnedCount) lines.push('كلمات محفوظة: ' + ctx.learnedCount);
+    if (ctx.xp)           lines.push('نقاط XP: ' + ctx.xp);
+    if (ctx.lang)         lines.push('لغة الواجهة: ' + (ctx.lang === 'ar' ? 'العربية' : 'English'));
     if (Array.isArray(ctx.visibleWords) && ctx.visibleWords.length)
-      lines.push(`كلمات ظاهرة: ${ctx.visibleWords.slice(0, 10).join('، ')}`);
+      lines.push('كلمات ظاهرة: ' + ctx.visibleWords.slice(0, 10).join('، '));
     return lines.join('\n') || 'لا معلومات إضافية';
   }
 
-  const SYSTEM = `أنتِ شينلي (Xīnlì · 心力)، المساعدة الذكية لتطبيق Red Silk HSK.
+  const SYSTEM = 'أنتِ شينلي (Xīnlì · 心力)، المساعدة الذكية لتطبيق Red Silk HSK.\n\n'
+    + 'هويتك:\n'
+    + '- اسمك شينلي Xīnlì — يعني "قوة القلب والعقل" (心力)\n'
+    + '- شخصيتك: دافئة، صبورة، حماسية، تُحبّ التعليم\n'
+    + '- تعيشين داخل تطبيق Red Silk HSK لتعليم الصينية للناطقين بالعربية\n'
+    + '- لا تذكري Gemini أو Google أو أي تقنية خارجية — أنتِ شينلي فقط\n\n'
+    + 'مهامك:\n'
+    + '١. شرح المفردات: 汉字 (Pinyin) = المعنى بالعربية\n'
+    + '٢. تفسير القواعد النحوية بأمثلة\n'
+    + '٣. تصحيح الأخطاء برفق مع تشجيع\n'
+    + '٤. الإجابة عن أسئلة الدروس والمنهج\n'
+    + '٥. تقديم طرق حفظ ممتعة\n'
+    + '٦. ربط الكلمات بالثقافة الصينية\n\n'
+    + 'قواعد الأسلوب:\n'
+    + '- العربية لغة أساسية، أضيفي الصينية عند الشرح\n'
+    + '- ردود مختصرة وواضحة — لا إطالة دون داعٍ\n'
+    + '- إيجابية ومشجّعة دائماً\n'
+    + '- لا تذكري أنكِ Gemini أو AI خارجي\n\n'
+    + 'المنهج: HSK 1 — 500 كلمة · 15 موضوعاً — للناطقين بالعربية\n\n'
+    + 'السياق الحالي للمستخدم:\n'
+    + buildCtx(context)
+    + '\n\nابدئي مباشرة بالإجابة المفيدة!';
 
-هويتك:
-- اسمك شينلي Xīnlì — يعني "قوة القلب والعقل" (心力)
-- شخصيتك: دافئة، صبورة، حماسية، تُحبّ التعليم
-- تعيشين داخل تطبيق Red Silk HSK لتعليم الصينية للناطقين بالعربية
-- لا تذكري Gemini أو Google أو أي تقنية خارجية — أنتِ شينلي فقط
-
-مهامك:
-١. شرح المفردات: 汉字 (Pinyin) = المعنى بالعربية
-٢. تفسير القواعد النحوية بأمثلة
-٣. تصحيح الأخطاء برفق مع تشجيع
-٤. الإجابة عن أسئلة الدروس والمنهج
-٥. تقديم طرق حفظ ممتعة
-٦. ربط الكلمات بالثقافة الصينية
-
-قواعد الأسلوب:
-- العربية لغة أساسية، أضيفي الصينية عند الشرح
-- ردود مختصرة وواضحة — لا إطالة دون داعٍ
-- إيجابية ومشجّعة دائماً
-- لا تذكري أنكِ Gemini أو AI خارجي
-
-المنهج: HSK 1 — 500 كلمة · 15 موضوعاً — للناطقين بالعربية
-
-السياق:
-${buildCtx(context)}
-
-ابدئي مباشرة بالإجابة المفيدة!`;
-
-  // Build Gemini contents — must alternate user/model, start with user
+  // ── Build Gemini contents array ─────────────────────────────────────────
+  // Rules: role must be 'user' or 'model', must start with 'user', must alternate.
+  //
+  // The frontend sends full history including the assistant welcome bubble at
+  // index 0 (role:'assistant'). We must strip any leading model messages so
+  // the array always starts with a user turn — that is the core fix.
   const contents = [];
+
   for (const msg of messages) {
     if (!msg.content || !msg.role) continue;
     const role = msg.role === 'assistant' ? 'model' : 'user';
+    // Merge consecutive same-role entries to maintain strict alternation
     if (contents.length > 0 && contents[contents.length - 1].role === role) {
       contents[contents.length - 1].parts[0].text += '\n' + String(msg.content);
     } else {
-      contents.push({ role, parts: [{ text: String(msg.content) }] });
+      contents.push({ role: role, parts: [{ text: String(msg.content) }] });
     }
   }
 
-  if (!contents.length || contents[0].role !== 'user') {
-    return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'تنسيق الرسائل غير صحيح' }) };
+  // Drop any leading model entries until we reach the first user message
+  while (contents.length > 0 && contents[0].role === 'model') {
+    contents.shift();
   }
+
+  if (contents.length === 0) {
+    return {
+      statusCode: 400,
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: 'لم يُرسَل أي سؤال. اكتب سؤالك وأرسله!' }),
+    };
+  }
+  // ────────────────────────────────────────────────────────────────────────
 
   const GEMINI_URL =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + API_KEY;
@@ -119,7 +134,7 @@ ${buildCtx(context)}
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         system_instruction: { parts: [{ text: SYSTEM }] },
-        contents,
+        contents: contents,
         generationConfig: { temperature: 0.75, maxOutputTokens: 700, topP: 0.92 },
         safetySettings: [
           { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
@@ -139,16 +154,16 @@ ${buildCtx(context)}
   }
 
   if (!rawRes.ok) {
-    const errBody = await rawRes.text().catch(() => '');
+    const errBody = await rawRes.text().catch(function() { return ''; });
     console.error('[Xinli] Gemini error', rawRes.status, errBody.slice(0, 400));
-    const msg =
+    const errMsg =
       rawRes.status === 429 ? 'شينلي مشغولة قليلاً! انتظر ثانية ثم حاول مجدداً 😊' :
-      rawRes.status === 400 ? 'طلب غير صالح. يرجى تحديث الصفحة والمحاولة.' :
+      rawRes.status === 400 ? 'حدث خطأ في المعالجة. يرجى تحديث الصفحة والمحاولة.' :
       'حدث خطأ مؤقت. يرجى المحاولة مجدداً.';
     return {
       statusCode: rawRes.status >= 500 ? 502 : rawRes.status,
       headers: { ...CORS, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: msg }),
+      body: JSON.stringify({ error: errMsg }),
     };
   }
 
@@ -159,12 +174,15 @@ ${buildCtx(context)}
   }
 
   const reply =
-    data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
-    'عذراً، لم أتمكن من الرد الآن. حاول مجدداً!';
+    (data && data.candidates && data.candidates[0] &&
+     data.candidates[0].content && data.candidates[0].content.parts &&
+     data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text)
+    ? data.candidates[0].content.parts[0].text.trim()
+    : 'عذراً، لم أتمكن من الرد الآن. حاول مجدداً!';
 
   return {
     statusCode: 200,
     headers: { ...CORS, 'Content-Type': 'application/json; charset=utf-8' },
-    body: JSON.stringify({ reply }),
+    body: JSON.stringify({ reply: reply }),
   };
 };
