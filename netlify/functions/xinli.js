@@ -4,11 +4,12 @@
  *
  * Secure Gemini API proxy.
  * GEMINI_API_KEY is read ONLY from Netlify environment variables.
- * It never appears in any frontend code or response body.
  *
- * FIX: The frontend includes the assistant welcome message at index 0.
- * Gemini requires conversations to start with role:'user', so we strip
- * any leading model/assistant messages before forwarding to Gemini.
+ * v3 — fixes:
+ *  1. Model switched to gemini-1.5-flash (best free-tier quota availability)
+ *  2. Full Gemini error body is logged to Netlify function logs
+ *  3. Real Gemini error detail is surfaced in the chat response for debugging
+ *  4. Leading assistant messages stripped before sending to Gemini (previous fix)
  */
 
 exports.handler = async function (event) {
@@ -27,16 +28,18 @@ exports.handler = async function (event) {
     return { statusCode: 405, headers: CORS, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
+  // ── API Key guard ──────────────────────────────────────────────────────
   const API_KEY = process.env.GEMINI_API_KEY;
   if (!API_KEY) {
-    console.error('[Xinli] GEMINI_API_KEY not set in Netlify environment variables.');
+    console.error('[Xinli] GEMINI_API_KEY is not set in Netlify environment variables.');
     return {
       statusCode: 500,
       headers: { ...CORS, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'خطأ في إعداد المساعد. يرجى التواصل مع الدعم الفني.' }),
+      body: JSON.stringify({ error: 'خطأ في إعداد المساعد — GEMINI_API_KEY غير موجود.' }),
     };
   }
 
+  // ── Parse request ──────────────────────────────────────────────────────
   let body;
   try { body = JSON.parse(event.body || '{}'); }
   catch {
@@ -49,6 +52,7 @@ exports.handler = async function (event) {
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'لا توجد رسائل' }) };
   }
 
+  // ── Context description ────────────────────────────────────────────────
   function buildCtx(ctx) {
     const TAB = {
       home: 'الصفحة الرئيسية', vocab: 'المفردات', grammar: 'القواعد',
@@ -68,6 +72,7 @@ exports.handler = async function (event) {
     return lines.join('\n') || 'لا معلومات إضافية';
   }
 
+  // ── System prompt ──────────────────────────────────────────────────────
   const SYSTEM = 'أنتِ شينلي (Xīnlì · 心力)، المساعدة الذكية لتطبيق Red Silk HSK.\n\n'
     + 'هويتك:\n'
     + '- اسمك شينلي Xīnlì — يعني "قوة القلب والعقل" (心力)\n'
@@ -84,37 +89,27 @@ exports.handler = async function (event) {
     + 'قواعد الأسلوب:\n'
     + '- العربية لغة أساسية، أضيفي الصينية عند الشرح\n'
     + '- ردود مختصرة وواضحة — لا إطالة دون داعٍ\n'
-    + '- إيجابية ومشجّعة دائماً\n'
-    + '- لا تذكري أنكِ Gemini أو AI خارجي\n\n'
+    + '- إيجابية ومشجّعة دائماً\n\n'
     + 'المنهج: HSK 1 — 500 كلمة · 15 موضوعاً — للناطقين بالعربية\n\n'
-    + 'السياق الحالي للمستخدم:\n'
+    + 'السياق الحالي:\n'
     + buildCtx(context)
     + '\n\nابدئي مباشرة بالإجابة المفيدة!';
 
-  // ── Build Gemini contents array ─────────────────────────────────────────
-  // Rules: role must be 'user' or 'model', must start with 'user', must alternate.
-  //
-  // The frontend sends full history including the assistant welcome bubble at
-  // index 0 (role:'assistant'). We must strip any leading model messages so
-  // the array always starts with a user turn — that is the core fix.
+  // ── Build Gemini contents (must start with user, must alternate) ────────
   const contents = [];
-
   for (const msg of messages) {
     if (!msg.content || !msg.role) continue;
     const role = msg.role === 'assistant' ? 'model' : 'user';
-    // Merge consecutive same-role entries to maintain strict alternation
     if (contents.length > 0 && contents[contents.length - 1].role === role) {
       contents[contents.length - 1].parts[0].text += '\n' + String(msg.content);
     } else {
       contents.push({ role: role, parts: [{ text: String(msg.content) }] });
     }
   }
-
-  // Drop any leading model entries until we reach the first user message
+  // Strip any leading model/assistant messages — Gemini must start with user
   while (contents.length > 0 && contents[0].role === 'model') {
     contents.shift();
   }
-
   if (contents.length === 0) {
     return {
       statusCode: 400,
@@ -122,10 +117,19 @@ exports.handler = async function (event) {
       body: JSON.stringify({ error: 'لم يُرسَل أي سؤال. اكتب سؤالك وأرسله!' }),
     };
   }
-  // ────────────────────────────────────────────────────────────────────────
 
+  // ── Call Gemini API ────────────────────────────────────────────────────
+  // Using gemini-1.5-flash: best free-tier quota, fast, supports Arabic well.
+  // If you want to try other models, options are:
+  //   gemini-1.5-flash        ← recommended (most quota on free tier)
+  //   gemini-1.5-flash-8b     ← even higher quota limits
+  //   gemini-1.5-pro          ← better quality, lower quota
+  //   gemini-2.0-flash        ← newest, but lower free quota
+  const MODEL = 'gemini-1.5-flash';
   const GEMINI_URL =
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + API_KEY;
+    'https://generativelanguage.googleapis.com/v1beta/models/' + MODEL + ':generateContent?key=' + API_KEY;
+
+  console.log('[Xinli] Calling Gemini model:', MODEL, '| turns in contents:', contents.length);
 
   let rawRes;
   try {
@@ -135,7 +139,11 @@ exports.handler = async function (event) {
       body: JSON.stringify({
         system_instruction: { parts: [{ text: SYSTEM }] },
         contents: contents,
-        generationConfig: { temperature: 0.75, maxOutputTokens: 700, topP: 0.92 },
+        generationConfig: {
+          temperature:     0.75,
+          maxOutputTokens: 700,
+          topP:            0.92,
+        },
         safetySettings: [
           { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
           { category: 'HARM_CATEGORY_HATE_SPEECH',       threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
@@ -145,40 +153,89 @@ exports.handler = async function (event) {
       }),
     });
   } catch (netErr) {
-    console.error('[Xinli] Network error:', netErr.message);
+    console.error('[Xinli] Network error reaching Gemini:', netErr.message);
     return {
       statusCode: 502,
       headers: { ...CORS, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'تعذّر الوصول إلى الخادم. يرجى المحاولة مجدداً.' }),
+      body: JSON.stringify({ error: 'تعذّر الاتصال بالخادم. يرجى المحاولة مجدداً.' }),
     };
   }
 
+  // ── Handle Gemini error responses ──────────────────────────────────────
   if (!rawRes.ok) {
-    const errBody = await rawRes.text().catch(function() { return ''; });
-    console.error('[Xinli] Gemini error', rawRes.status, errBody.slice(0, 400));
-    const errMsg =
-      rawRes.status === 429 ? 'شينلي مشغولة قليلاً! انتظر ثانية ثم حاول مجدداً 😊' :
-      rawRes.status === 400 ? 'حدث خطأ في المعالجة. يرجى تحديث الصفحة والمحاولة.' :
-      'حدث خطأ مؤقت. يرجى المحاولة مجدداً.';
+    // Always read and log the full error body — visible in Netlify function logs
+    const errBody = await rawRes.text().catch(function() { return '(empty)'; });
+    console.error('[Xinli] Gemini HTTP error | status:', rawRes.status, '| model:', MODEL, '| body:', errBody);
+
+    // Parse the Gemini error message if possible
+    let geminiErrDetail = '';
+    try {
+      const parsed = JSON.parse(errBody);
+      geminiErrDetail = (parsed && parsed.error && parsed.error.message) ? parsed.error.message : '';
+    } catch (_) {}
+
+    // Map status codes to user-friendly Arabic messages
+    let userMsg;
+    if (rawRes.status === 429) {
+      userMsg = 'وصلنا للحد الأقصى من الطلبات. انتظر دقيقة ثم حاول مجدداً. 😊';
+    } else if (rawRes.status === 403) {
+      userMsg = 'مفتاح API غير مصرح له. يرجى التحقق من إعدادات Netlify.';
+    } else if (rawRes.status === 400) {
+      userMsg = 'خطأ في صيغة الطلب. يرجى تحديث الصفحة والمحاولة.';
+    } else if (rawRes.status === 404) {
+      userMsg = 'النموذج غير متاح. يرجى التواصل مع الدعم.';
+    } else {
+      userMsg = 'حدث خطأ مؤقت (HTTP ' + rawRes.status + '). يرجى المحاولة مجدداً.';
+    }
+
+    // Append Gemini's own error detail if we have one (helps with debugging)
+    if (geminiErrDetail) {
+      userMsg += ' [' + geminiErrDetail.slice(0, 120) + ']';
+    }
+
     return {
       statusCode: rawRes.status >= 500 ? 502 : rawRes.status,
       headers: { ...CORS, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: errMsg }),
+      body: JSON.stringify({ error: userMsg }),
     };
   }
 
+  // ── Parse successful Gemini response ───────────────────────────────────
   let data;
-  try { data = await rawRes.json(); }
-  catch {
-    return { statusCode: 502, headers: CORS, body: JSON.stringify({ error: 'استجابة غير متوقعة.' }) };
+  try {
+    data = await rawRes.json();
+  } catch (parseErr) {
+    console.error('[Xinli] Failed to parse Gemini JSON response:', parseErr.message);
+    return {
+      statusCode: 502,
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: 'استجابة غير متوقعة من الخادم.' }),
+    };
   }
 
+  // Log the raw response structure for debugging (only the shape, not full text)
+  console.log('[Xinli] Gemini response | candidates:', data && data.candidates ? data.candidates.length : 0,
+    '| finishReason:', data && data.candidates && data.candidates[0] ? data.candidates[0].finishReason : 'n/a');
+
+  // Extract reply text
   const reply =
     (data && data.candidates && data.candidates[0] &&
      data.candidates[0].content && data.candidates[0].content.parts &&
      data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text)
-    ? data.candidates[0].content.parts[0].text.trim()
-    : 'عذراً، لم أتمكن من الرد الآن. حاول مجدداً!';
+      ? data.candidates[0].content.parts[0].text.trim()
+      : null;
+
+  if (!reply) {
+    // Log the full response so we can see why text extraction failed
+    console.error('[Xinli] Could not extract text from Gemini response:', JSON.stringify(data).slice(0, 600));
+    return {
+      statusCode: 200,
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: 'لم أتمكن من توليد رد. يرجى المحاولة مجدداً.' }),
+    };
+  }
+
+  console.log('[Xinli] Success | reply length:', reply.length, 'chars');
 
   return {
     statusCode: 200,
